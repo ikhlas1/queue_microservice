@@ -49,10 +49,39 @@ public class QueueController {
         return queueService.addQueue(q);
     }
 
-    @PutMapping ("/updateQueue")
+   /* @PutMapping ("/updateQueue")
     public Queue updateQueue(@RequestBody Queue q){
 
         return queueService.updateQueue(q);
+    }*/
+
+
+    @PutMapping("/updateQueueName")
+    public Queue updateQueueName(@RequestParam(name = "queueId")int queueId,@RequestParam(name = "queueName") String queueName){
+
+        return queueService.updateQueueName(queueId,queueName);
+    }
+
+    @PutMapping("/updateQueueNotificationFactor")
+    public Queue updateQueueNotificationFactor(@RequestParam(name = "queueId")int queueId,@RequestParam(name ="notificationFactor") int  notificationFactor){
+
+        return queueService.updateQueueNotificationFactor(queueId,notificationFactor);
+    }
+
+    @PutMapping ("updateQueueSize")
+    public Queue updateQueueSize (@RequestParam(name = "queueId")int queueId,@RequestParam(name ="queueSize") int queueSize){
+        return queueService.updateQueueSize(queueId,queueSize);
+    }
+
+    @PutMapping ("updateQueueState")
+    public Queue updateQueueState (@RequestParam(name = "queueId")int queueId,@RequestParam(name ="queueState") boolean queueState){
+        return queueService.updateQueueState(queueId,queueState);
+    }
+
+    @PutMapping("/updateQueueServiceName")
+    public Queue updateQueueServiceName(@RequestParam(name = "queueId")int queueId,@RequestParam(name ="queueServiceName") String queueServiceName){
+
+        return queueService.updateQueueServiceName(queueId,queueServiceName);
     }
 
     @PutMapping ("/addClient")
@@ -71,7 +100,7 @@ public class QueueController {
         return queueService.updateQueue(q);
     }
 
-    @DeleteMapping ("/deleteById")
+    @DeleteMapping ("/deleteQueueById")
     public String deleteQueue(@RequestParam("id") int id){
          queueService.delete(id);
          return "Queue deleted successfully";

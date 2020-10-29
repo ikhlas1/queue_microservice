@@ -44,4 +44,39 @@ public class QueueService {
     public Queue findByQueueName(String queueName) {
         return queueRepository.findByQueueName(queueName);
     }
+
+    public Queue updateQueueSize(int queueId, int queueSize) {
+        Queue q = new Queue();
+        q = findByQueueId(queueId);
+        q.setQueueSize(queueSize);
+        return queueRepository.save(q);
+    }
+
+    public Queue updateQueueNotificationFactor(int queueId, int notificationFactor) {
+        Queue q = new Queue();
+        q = findByQueueId(queueId);
+        q.setNotificationFactor(notificationFactor);
+        return queueRepository.save(q);
+    }
+
+    public Queue updateQueueName(int queueId, String queueName) {
+        Queue q = new Queue();
+        q = findByQueueId(queueId);
+        q.setQueueName(queueName);
+        return queueRepository.save(q);
+    }
+
+    public Queue updateQueueState(int queueId, boolean queueState) {
+        Queue q = new Queue();
+        q = findByQueueId(queueId);
+        q.setQueueState(queueState);
+        return queueRepository.save(q);
+    }
+
+    public Queue updateQueueServiceName(int queueId, String queueServiceName) {
+        Queue q = new Queue();
+        q = findByQueueId(queueId);
+        q.setServiceName(queueServiceName);
+        return queueRepository.save(q);
+    }
 }
