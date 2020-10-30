@@ -10,8 +10,6 @@ import org.springframework.core.env.Environment;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-import java.util.LinkedList;
 import java.util.List;
 import java.util.Objects;
 
@@ -114,7 +112,7 @@ public class QueueService {
 
     public void generateAlmostTurnNotification(Queue queue) {
         String notificationCode = "almostTurn";
-        Notification notification = generateNotification(queue,null,notificationCode);;
+        Notification notification = generateNotification(queue,null,notificationCode);
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         rabbitMessagingTemplate.convertAndSend(
                 Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),

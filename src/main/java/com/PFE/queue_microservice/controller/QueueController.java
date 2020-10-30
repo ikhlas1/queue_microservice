@@ -1,6 +1,5 @@
 package com.PFE.queue_microservice.controller;
 
-import com.PFE.queue_microservice.model.Client;
 import com.PFE.queue_microservice.model.Queue;
 import com.PFE.queue_microservice.service.QueueService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -116,13 +115,14 @@ public class QueueController {
     @PutMapping ("/deleteClient")
     public Queue deleteClientFromQueue (@RequestParam(name = "queueId")int queueId,
                                         @RequestParam(name = "reason")String reason){
-        Queue q = findByQueueId(queueId);;
+        Queue q = findByQueueId(queueId);
         //Send to rabbitmq-late-queue if reason.equals("late")
         if (reason.equals("late"))
             queueService.generateLateNotification(q);
         q.deleteClient();
         //Send to rabbitmq-turn-queue
         queueService.generateTurnNotification(q);
+        queueService.generateAlmostTurnNotification(q);
         return queueService.updateQueue(q);
     }
 
