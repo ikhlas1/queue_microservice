@@ -2,12 +2,10 @@ package com.PFE.queue_microservice.controller;
 
 import com.PFE.queue_microservice.model.Client;
 import com.PFE.queue_microservice.model.Queue;
-import com.PFE.queue_microservice.repository.QueueRepository;
 import com.PFE.queue_microservice.service.QueueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.util.LinkedList;
 import java.util.List;
 
 @RestController
@@ -75,6 +73,9 @@ public class QueueController {
 
     @PutMapping ("/updateQueueState")
     public Queue updateQueueState (@RequestParam(name = "queueId")int queueId,@RequestParam(name ="queueState") boolean queueState){
+        //Send to rabbitmq-status-queue
+        if (!queueState)
+            queueService.generateStatusNotification(queueService.findByQueueId(queueId));
         return queueService.updateQueueState(queueId,queueState);
     }
 
@@ -84,19 +85,44 @@ public class QueueController {
         return queueService.updateQueueServiceName(queueId,queueServiceName);
     }
 
+    /*
     @PutMapping ("/addClient")
     public Queue addClientToQueue (@RequestParam(name = "queueId")int queueId,@RequestBody Client c){
         Queue q;
         q = findByQueueId(queueId);
+        //c.setQueueNumber(q.getClientQueue().get(q.getClientQueue().size()-1).getQueueNumber() + 1);
         q.addClient(c);
+        return queueService.updateQueue(q);
+    }*/
+    @PutMapping ("/addClient")
+    public Queue addClientToQueue (@RequestParam(name = "queueId")int queueId,
+                                   @RequestParam(name = "phoneNumber")String phoneNumber,
+                                   @RequestParam(name = "emailAddress")String emailAddress){
+        Queue q = queueService.addClient(queueId, phoneNumber, emailAddress);
+        //Send to rabbitmq-added-queue
+        queueService.generateAddedNotification(q);
         return queueService.updateQueue(q);
     }
 
-    @PutMapping ("/deleteClient")
+    /*@PutMapping ("/deleteClient")
     public Queue deleteClientFromQueue (@RequestParam(name = "queueId")int queueId){
         Queue q;
         q = findByQueueId(queueId);
         q.deleteClient();
+        //Send to rabbitmq-turn-queue
+        return queueService.updateQueue(q);
+    }*/
+
+    @PutMapping ("/deleteClient")
+    public Queue deleteClientFromQueue (@RequestParam(name = "queueId")int queueId,
+                                        @RequestParam(name = "reason")String reason){
+        Queue q = findByQueueId(queueId);;
+        //Send to rabbitmq-late-queue if reason.equals("late")
+        if (reason.equals("late"))
+            queueService.generateLateNotification(q);
+        q.deleteClient();
+        //Send to rabbitmq-turn-queue
+        queueService.generateTurnNotification(q);
         return queueService.updateQueue(q);
     }
 

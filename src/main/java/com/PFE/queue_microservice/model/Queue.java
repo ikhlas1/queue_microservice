@@ -27,10 +27,14 @@ public class Queue {
     public Queue(){
 
     }
+
     public void addClient (Client c){
+
         clientQueue.add(c);
     }
+
     public void deleteClient (){
+
         clientQueue.remove(0);
     }
 }
