@@ -1,8 +1,12 @@
 package com.PFE.queue_microservice.service;
 
 import com.PFE.queue_microservice.model.Queue;
+import com.PFE.queue_microservice.payload.Notification;
 import com.PFE.queue_microservice.repository.QueueRepository;
+import org.springframework.amqp.rabbit.core.RabbitMessagingTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.core.env.Environment;
+import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
@@ -11,6 +15,12 @@ import java.util.List;
 public class QueueService {
     @Autowired
     QueueRepository queueRepository;
+    @Autowired
+    private Environment env;
+    @Autowired
+    private RabbitMessagingTemplate rabbitMessagingTemplate;
+    @Autowired
+    private MappingJackson2MessageConverter mappingJackson2MessageConverter;
 
     public List<Queue> getAll() {
         return queueRepository.findAll();
@@ -78,5 +88,41 @@ public class QueueService {
         q = findByQueueId(queueId);
         q.setServiceName(queueServiceName);
         return queueRepository.save(q);
+    }
+
+    public void generateTurnNotification(Queue queue) {
+        Notification notification = new Notification();
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                env.getProperty("rabbitmq.exchange.name"),
+                env.getProperty("rabbitmq.routingkey.turn"),
+                notification);
+    }
+
+    public void generateLateNotification(Queue queue) {
+        Notification notification = new Notification();
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                env.getProperty("rabbitmq.exchange.name"),
+                env.getProperty("rabbitmq.routingkey.late"),
+                notification);
+    }
+
+    public void generateAddedNotification(Queue queue) {
+        Notification notification = new Notification();
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                env.getProperty("rabbitmq.exchange.name"),
+                env.getProperty("rabbitmq.routingkey.added"),
+                notification);
+    }
+
+    public void generateStatusNotification(Queue queue) {
+        Notification notification = new Notification();
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                env.getProperty("rabbitmq.exchange.name"),
+                env.getProperty("rabbitmq.routingkey.status"),
+                notification);
     }
 }

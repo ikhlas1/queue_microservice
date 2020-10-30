@@ -68,12 +68,12 @@ public class QueueController {
         return queueService.updateQueueNotificationFactor(queueId,notificationFactor);
     }
 
-    @PutMapping ("updateQueueSize")
+    @PutMapping ("/updateQueueSize")
     public Queue updateQueueSize (@RequestParam(name = "queueId")int queueId,@RequestParam(name ="queueSize") int queueSize){
         return queueService.updateQueueSize(queueId,queueSize);
     }
 
-    @PutMapping ("updateQueueState")
+    @PutMapping ("/updateQueueState")
     public Queue updateQueueState (@RequestParam(name = "queueId")int queueId,@RequestParam(name ="queueState") boolean queueState){
         return queueService.updateQueueState(queueId,queueState);
     }
@@ -86,7 +86,7 @@ public class QueueController {
 
     @PutMapping ("/addClient")
     public Queue addClientToQueue (@RequestParam(name = "queueId")int queueId,@RequestBody Client c){
-        Queue q = new Queue();
+        Queue q;
         q = findByQueueId(queueId);
         q.addClient(c);
         return queueService.updateQueue(q);
@@ -94,7 +94,7 @@ public class QueueController {
 
     @PutMapping ("/deleteClient")
     public Queue deleteClientFromQueue (@RequestParam(name = "queueId")int queueId){
-        Queue q = new Queue();
+        Queue q;
         q = findByQueueId(queueId);
         q.deleteClient();
         return queueService.updateQueue(q);
