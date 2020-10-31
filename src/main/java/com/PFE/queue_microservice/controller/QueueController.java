@@ -121,8 +121,10 @@ public class QueueController {
             queueService.generateLateNotification(q);
         q.deleteClient();
         //Send to rabbitmq-turn-queue
-        queueService.generateTurnNotification(q);
-        queueService.generateAlmostTurnNotification(q);
+        if (!q.getClientQueue().isEmpty()){
+            queueService.generateTurnNotification(q);
+            queueService.generateAlmostTurnNotification(q);
+        }
         return queueService.updateQueue(q);
     }
 

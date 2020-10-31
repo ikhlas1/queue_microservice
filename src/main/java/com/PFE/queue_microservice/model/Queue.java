@@ -29,12 +29,16 @@ public class Queue {
     }
 
     public void addClient (Client c){
-
-        clientQueue.add(c);
+        if (clientQueue.size() < queueSize)
+            clientQueue.add(c);
+        else
+            System.out.println("The clients queue is full.");
     }
 
     public void deleteClient (){
-
-        clientQueue.remove(0);
+        if (!clientQueue.isEmpty())
+            clientQueue.remove(0);
+        else
+            System.out.println("The clients queue is empty.");
     }
 }

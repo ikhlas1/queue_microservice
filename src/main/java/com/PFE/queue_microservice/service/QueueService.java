@@ -94,9 +94,19 @@ public class QueueService {
     }
 
     public Queue addClient(int queueId, String phoneNumber, String emailAddress){
+        Client c;
         Queue q = findByQueueId(queueId);
-        Client c = new Client(q.getClientQueue().get(q.getClientQueue().size()-1).getQueueNumber() + 1, phoneNumber, emailAddress);
-        q.addClient(c);
+        int clientQueueSize = q.getClientQueue().size();
+
+        if (clientQueueSize == 0) {//Empty clients queue
+            c = new Client(1, phoneNumber, emailAddress);
+            q.addClient(c);
+        } else if (clientQueueSize < q.getQueueSize()) {//Clients queue isn't full
+            c = new Client(q.getClientQueue().get(q.getClientQueue().size() - 1).getQueueNumber() + 1, phoneNumber, emailAddress);
+            q.addClient(c);
+        } else
+            System.out.printf("Can't add more clients because the queue %s in service %s is full.%n",q.getQueueName(), q.getServiceName());
+
         return q;
     }
 
@@ -161,6 +171,7 @@ public class QueueService {
         int notificationFactor = queue.getNotificationFactor();
         String clientPhoneNumber;
         String clientEmailAddress;
+        int clientQueueSize = queue.getClientQueue().size();
         Notification notification = new Notification();
 
         notification.setServiceName(serviceName);
@@ -168,14 +179,16 @@ public class QueueService {
 
         switch  (notificationCode){
             case "almostTurn": //Client's turn is almost up (based on NotificationFactor)
-                clientPhoneNumber = queue.getClientQueue().get(notificationFactor).getPhoneNumber();
-                clientEmailAddress = queue.getClientQueue().get(notificationFactor).getEmailAddress();
-                if (!clientPhoneNumber.isEmpty())
-                    notification.setContactInfo(queue.getClientQueue().get(notificationFactor).getPhoneNumber());
-                else if (!clientEmailAddress.isEmpty())
-                    notification.setContactInfo(queue.getClientQueue().get(notificationFactor).getEmailAddress());
-                notification.setSubject("Client's Turn Notification");
-                notification.setMsgContent("There are "+notificationFactor+" clients left before it's your turn.");
+                if (notificationFactor < clientQueueSize) {
+                    clientPhoneNumber = queue.getClientQueue().get(notificationFactor).getPhoneNumber();
+                    clientEmailAddress = queue.getClientQueue().get(notificationFactor).getEmailAddress();
+                    if (!clientPhoneNumber.isEmpty())
+                        notification.setContactInfo(queue.getClientQueue().get(notificationFactor).getPhoneNumber());
+                    else if (!clientEmailAddress.isEmpty())
+                        notification.setContactInfo(queue.getClientQueue().get(notificationFactor).getEmailAddress());
+                    notification.setSubject("Client's Turn Notification");
+                    notification.setMsgContent("There are " + notificationFactor + " clients left before it's your turn.");
+                }
                 break;
             case "turn": //Client's turn is up
                 clientPhoneNumber = queue.getClientQueue().get(0).getPhoneNumber();
