@@ -10,6 +10,9 @@ public class Client {
     private String phoneNumber;
     private String emailAddress;
 
+    public Client(){
+
+    }
     public Client(int queueNumber, String phoneNumber, String emailAddress) {
         this.queueNumber = queueNumber;
         this.phoneNumber = phoneNumber;

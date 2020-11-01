@@ -3,6 +3,7 @@ package com.PFE.queue_microservice.service;
 import com.PFE.queue_microservice.model.Client;
 import com.PFE.queue_microservice.model.Queue;
 import com.PFE.queue_microservice.payload.Notification;
+import com.PFE.queue_microservice.payload.TimeStamp;
 import com.PFE.queue_microservice.repository.QueueRepository;
 import org.springframework.amqp.rabbit.core.RabbitMessagingTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -10,6 +11,7 @@ import org.springframework.core.env.Environment;
 import org.springframework.messaging.converter.MappingJackson2MessageConverter;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Objects;
 
@@ -183,7 +185,6 @@ public class QueueService {
         int notificationFactor = queue.getNotificationFactor();
         String clientPhoneNumber;
         String clientEmailAddress;
-        int clientQueueSize = queue.getClientQueue().size();
         Notification notification = new Notification();
 
         notification.setServiceName(serviceName);
@@ -191,18 +192,16 @@ public class QueueService {
 
         switch  (notificationCode){
             case "almostTurn": //Client's turn is almost up (based on NotificationFactor)
-                if (notificationFactor < clientQueueSize) {
                     clientPhoneNumber = queue.getClientQueue().get(notificationFactor).getPhoneNumber();
                     clientEmailAddress = queue.getClientQueue().get(notificationFactor).getEmailAddress();
                     if (!clientPhoneNumber.isEmpty())
-                        notification.setContactInfo(queue.getClientQueue().get(notificationFactor).getPhoneNumber());
+                        notification.setContactInfo(clientPhoneNumber);
                     else if (!clientEmailAddress.isEmpty())
-                        notification.setContactInfo(queue.getClientQueue().get(notificationFactor).getEmailAddress());
+                        notification.setContactInfo(clientEmailAddress);
                     else
                         notification.setContactInfo("");
                     notification.setSubject("Client's Turn Notification");
                     notification.setMsgContent("There are " + notificationFactor + " clients left before it's your turn.");
-                }
                 break;
             case "turn": //Client's turn is up
                 clientPhoneNumber = queue.getClientQueue().get(0).getPhoneNumber();
@@ -268,5 +267,22 @@ public class QueueService {
         }
 
         return notification;
+    }
+
+    public void generateTimeStamp(Queue queue, Client client, String operationType, LocalDateTime localDateTime) {
+        TimeStamp timeStamp = new TimeStamp();
+
+        //timeStamp.setStampId(0);
+        timeStamp.setQueueId(queue.getQueueId());
+        timeStamp.setServiceId(queue.getServiceId());
+        timeStamp.setClient(client);
+        timeStamp.setTimeStamp(localDateTime);
+        timeStamp.setOperationType(operationType);
+
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.timestamp")),
+                timeStamp);
     }
 }

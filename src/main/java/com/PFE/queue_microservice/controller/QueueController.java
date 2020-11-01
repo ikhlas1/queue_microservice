@@ -5,6 +5,7 @@ import com.PFE.queue_microservice.service.QueueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -97,10 +98,17 @@ public class QueueController {
     public Queue addClientToQueue (@RequestParam(name = "queueId")int queueId,
                                    @RequestParam(name = "phoneNumber")String phoneNumber,
                                    @RequestParam(name = "emailAddress")String emailAddress){
+
         Queue q = queueService.addClient(queueId, phoneNumber, emailAddress);
+        LocalDateTime localDateTime;
         //Send to rabbitmq-added-queue
         queueService.generateAddedNotification(q);
-        return queueService.updateQueue(q);
+        //Send to rabbitmq-timestamp-queue
+        localDateTime = LocalDateTime.now();
+        queueService.generateTimeStamp(q, q.getClientQueue().get(q.getClientQueue().size()-1),"Client is added.", localDateTime);
+
+        q = queueService.updateQueue(q);
+        return q;
     }
 
     /*@PutMapping ("/deleteClient")
@@ -116,18 +124,36 @@ public class QueueController {
     public Queue deleteClientFromQueue (@RequestParam(name = "queueId")int queueId,
                                         @RequestParam(name = "reason")String reason){
         Queue q = findByQueueId(queueId);
+        LocalDateTime localDateTime;
 
-        //Send to rabbitmq-late-queue if reason.equals("late") before deletion
-        if (reason.equals("late"))
-            queueService.generateLateNotification(q);
-
-        q = queueService.deleteClient(queueId);
-        //Send to rabbitmq-turn-queue after deletion
-        if (!q.getClientQueue().isEmpty()){
+        if (!q.getClientQueue().isEmpty()) {
+            if (reason.equals("late")) {
+                //Send to rabbitmq-late-queue
+                queueService.generateLateNotification(q);
+                localDateTime = LocalDateTime.now();
+                //Send to rabbitmq-timestamp-queue
+                queueService.generateTimeStamp(q, q.getClientQueue().get(0),"Client is late.", localDateTime);
+            } else if (reason.equals("done")) {
+                //Send to rabbitmq-timestamp-queue
+                localDateTime = LocalDateTime.now();
+                queueService.generateTimeStamp(q, q.getClientQueue().get(0), "Client is done.", localDateTime);
+            }
+            //Delete the Client
+            q = queueService.deleteClient(queueId);
+            //Send to rabbitmq-turn-queue
             queueService.generateTurnNotification(q);
-            queueService.generateAlmostTurnNotification(q);
+            localDateTime = LocalDateTime.now();
+            //Send to rabbitmq-timestamp-queue
+            queueService.generateTimeStamp(q, q.getClientQueue().get(0), "Client's turn.", localDateTime);
+            //Send to rabbitmq-turn-queue
+            if (q.getNotificationFactor() < q.getClientQueue().size())
+                queueService.generateAlmostTurnNotification(q);
+
+            //Update the QueueDB after client deletion
+            q = queueService.updateQueue(q);
         }
-        return queueService.updateQueue(q);
+
+        return q;
     }
 
     @DeleteMapping ("/deleteQueueById")
