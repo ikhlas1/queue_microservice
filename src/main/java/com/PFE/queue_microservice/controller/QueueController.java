@@ -55,13 +55,13 @@ public class QueueController {
 
     @PutMapping("/updateQueueName")
     public Queue updateQueueName(@RequestParam(name = "queueId")int queueId,@RequestParam(name = "queueName") String queueName){
-
+        //Must notify clients of this update, or make sure the queue is offline (empty) before the update
         return queueService.updateQueueName(queueId,queueName);
     }
 
     @PutMapping("/updateQueueNotificationFactor")
     public Queue updateQueueNotificationFactor(@RequestParam(name = "queueId")int queueId,@RequestParam(name ="notificationFactor") int  notificationFactor){
-
+        //Must notify clients of this update, or make sure the queue is offline (empty) before the update
         return queueService.updateQueueNotificationFactor(queueId,notificationFactor);
     }
 
@@ -116,11 +116,13 @@ public class QueueController {
     public Queue deleteClientFromQueue (@RequestParam(name = "queueId")int queueId,
                                         @RequestParam(name = "reason")String reason){
         Queue q = findByQueueId(queueId);
-        //Send to rabbitmq-late-queue if reason.equals("late")
+
+        //Send to rabbitmq-late-queue if reason.equals("late") before deletion
         if (reason.equals("late"))
             queueService.generateLateNotification(q);
-        q.deleteClient();
-        //Send to rabbitmq-turn-queue
+
+        q = queueService.deleteClient(queueId);
+        //Send to rabbitmq-turn-queue after deletion
         if (!q.getClientQueue().isEmpty()){
             queueService.generateTurnNotification(q);
             queueService.generateAlmostTurnNotification(q);

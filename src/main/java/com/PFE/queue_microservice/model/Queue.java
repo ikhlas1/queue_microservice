@@ -1,16 +1,17 @@
 package com.PFE.queue_microservice.model;
 
 import lombok.Getter;
+import lombok.RequiredArgsConstructor;
 import lombok.Setter;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.LinkedList;
 import java.util.List;
 
 
 @Getter
 @Setter
+@RequiredArgsConstructor
 @Document(collection = "Queue")
 public class Queue {
     @Id
@@ -24,21 +25,35 @@ public class Queue {
     private List<Client> clientQueue ;
 
 
-    public Queue(){
 
+    public boolean addClient (Client c){
+        boolean clientAdded = false;
+
+        if (clientQueue.size() < queueSize && queueState) //The queue isn't full and is available
+        {
+            clientAdded = clientQueue.add(c);
+        } else if (clientQueue.size() >= queueSize && queueState) {
+            //clientAdded = false;
+            System.out.println("The queue"+queueName+" in service "+serviceName+" is full.");
+        } else if (!queueState) {
+            //clientAdded = false;
+            System.out.println("The queue "+queueName+" in service "+serviceName+" is unavailable.");
+        }
+
+        return clientAdded;
     }
 
-    public void addClient (Client c){
-        if (clientQueue.size() < queueSize)
-            clientQueue.add(c);
-        else
-            System.out.println("The clients queue is full.");
-    }
+    public boolean deleteClient (){
+        boolean clientDeleted = false;
 
-    public void deleteClient (){
-        if (!clientQueue.isEmpty())
+        if (!clientQueue.isEmpty() && queueState) {//The queue isn't empty and is available
             clientQueue.remove(0);
-        else
-            System.out.println("The clients queue is empty.");
+            clientDeleted = true;
+        } else if (clientQueue.isEmpty() && queueState) {
+            System.out.println("The clients queue " + queueName + " in service " + serviceName + " is empty.");
+        } else
+            System.out.println("The queue" + queueName + " in service " + serviceName + " is unavailable.");
+
+        return clientDeleted;
     }
 }

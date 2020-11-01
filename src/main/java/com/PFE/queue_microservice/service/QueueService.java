@@ -110,10 +110,18 @@ public class QueueService {
         return q;
     }
 
+    public Queue deleteClient(int queueId){
+        Queue q = findByQueueId(queueId);
+        q.deleteClient();
+
+        return q;
+    }
+
     public void generateTurnNotification(Queue queue) {
         String notificationCode = "turn";
         Notification notification = generateNotification(queue,null,notificationCode);
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
                 Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.turn")),
@@ -124,6 +132,7 @@ public class QueueService {
         String notificationCode = "almostTurn";
         Notification notification = generateNotification(queue,null,notificationCode);
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
                 Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.turn")),
@@ -134,6 +143,7 @@ public class QueueService {
         String notificationCode = "late";
         Notification notification = generateNotification(queue,null,notificationCode);
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
                 Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.late")),
@@ -144,6 +154,7 @@ public class QueueService {
         String notificationCode = "added";
         Notification notification = generateNotification(queue,null,notificationCode);
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
                 Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.added")),
@@ -157,6 +168,7 @@ public class QueueService {
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         while (i < queue.getClientQueue().size()) {
             Notification notification = generateNotification(queue, queue.getClientQueue().get(i), notificationCode);
+            if (!notification.getContactInfo().isEmpty())
             rabbitMessagingTemplate.convertAndSend(
                     Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
                     Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.status")),
@@ -186,6 +198,8 @@ public class QueueService {
                         notification.setContactInfo(queue.getClientQueue().get(notificationFactor).getPhoneNumber());
                     else if (!clientEmailAddress.isEmpty())
                         notification.setContactInfo(queue.getClientQueue().get(notificationFactor).getEmailAddress());
+                    else
+                        notification.setContactInfo("");
                     notification.setSubject("Client's Turn Notification");
                     notification.setMsgContent("There are " + notificationFactor + " clients left before it's your turn.");
                 }
@@ -197,6 +211,8 @@ public class QueueService {
                     notification.setContactInfo(clientPhoneNumber);
                 else if (!clientEmailAddress.isEmpty())
                     notification.setContactInfo(clientEmailAddress);
+                else
+                    notification.setContactInfo("");
                 notification.setSubject("Client's Turn Notification");
                 notification.setMsgContent("It's your turn, please present yourself at the service "
                         +serviceName+"'s queue "+queueName+".");
@@ -208,8 +224,10 @@ public class QueueService {
                     notification.setContactInfo(clientPhoneNumber);
                 else if (!clientEmailAddress.isEmpty())
                     notification.setContactInfo(clientEmailAddress);
+                else
+                    notification.setContactInfo("");
                 notification.setSubject("Client's Late Notification");
-                notification.setMsgContent("We're sorry to inform you that due to being late, you have lost your turn and have been removed from the queue: "+ queueName);
+                notification.setMsgContent("You're late!\nYou've been removed from the queue: "+ queueName +" in service: "+ serviceName);
                 break;
             case "added": //Client added to the queue
                 clientPhoneNumber = queue.getClientQueue().get(queue.getClientQueue().size() - 1).getPhoneNumber();
@@ -218,12 +236,14 @@ public class QueueService {
                     notification.setContactInfo(clientPhoneNumber);
                 else if (!clientEmailAddress.isEmpty())
                     notification.setContactInfo(clientEmailAddress);
+                else
+                    notification.setContactInfo("");
                 notification.setSubject("Client Added Notification");
-                notification.setMsgContent(String.format("You've been successfully added to the queue: %s.\n" +
-                        "Your queue number is: %d.\n" +
-                        "You will be notified when there are %d clients before it's your turn.\n" +
-                        "You will also be notified when it's your turn, so please don't miss it!",
-                        queueName, queue.getClientQueue().get(queue.getClientQueue().size() - 1).getQueueNumber() + 1, notificationFactor));
+                notification.setMsgContent(String.format("Added to the queue %s in service %s.\n" +
+                        "Queue number: %d.\n" +
+                        "You will be notified when there are %d clients before you.\n" +
+                        "You will also be notified when it's your turn.",
+                        queueName, serviceName,queue.getClientQueue().get(queue.getClientQueue().size() - 1).getQueueNumber() + 1, notificationFactor));
                 break;
             case "status": //Queue status updated (true to false or vice versa)
                 clientPhoneNumber = client.getPhoneNumber();
@@ -232,8 +252,16 @@ public class QueueService {
                     notification.setContactInfo(clientPhoneNumber);
                 else if (!clientEmailAddress.isEmpty())
                     notification.setContactInfo(clientEmailAddress);
+                else
+                    notification.setContactInfo("");
                 notification.setSubject("Queue Status Notification");
-                notification.setMsgContent(String.format("The queue %s in service %s is no longer available.", queue.getQueueName(), queue.getServiceName()));
+                if (!queue.isQueueState()) {
+                    notification.setMsgContent(String.format("The queue %s in service %s is no longer available.\n" +
+                            "You will be notified when it's available again.", queue.getQueueName(), queue.getServiceName()));
+                } else
+                    notification.setMsgContent(String.format("The queue %s in service %s is now available.\n",
+                            queue.getQueueName(), queue.getServiceName()));
+
                 break;
             default:
                 break;
