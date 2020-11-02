@@ -7,7 +7,16 @@ import lombok.Setter;
 @Setter
 public class Client {
     private int queueNumber;
-    private int phoneNumber;
+    private String phoneNumber;
     private String emailAddress;
+
+    public Client(){
+
+    }
+    public Client(int queueNumber, String phoneNumber, String emailAddress) {
+        this.queueNumber = queueNumber;
+        this.phoneNumber = phoneNumber;
+        this.emailAddress = emailAddress;
+    }
 }
 
