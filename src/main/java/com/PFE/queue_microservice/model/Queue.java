@@ -15,13 +15,13 @@ import java.util.List;
 @Document(collection = "Queue")
 public class Queue {
     @Id
-    private int queueId;
+    private String queueId;
     private String queueName;
     private int queueSize;
     private int notificationFactor;
     private boolean queueState;//on or off
     private String serviceName;
-    private int serviceId;
+    private String serviceId;
     private List<Client> clientQueue ;
 
 
@@ -43,17 +43,17 @@ public class Queue {
         return clientAdded;
     }
 
-    public boolean deleteClient (){
-        boolean clientDeleted = false;
+    public Client deleteClient (){
+
+        Client deletedClient = new Client();
 
         if (!clientQueue.isEmpty() && queueState) {//The queue isn't empty and is available
-            clientQueue.remove(0);
-            clientDeleted = true;
+            deletedClient = clientQueue.remove(0);
         } else if (clientQueue.isEmpty() && queueState) {
             System.out.println("The clients queue " + queueName + " in service " + serviceName + " is empty.");
         } else
             System.out.println("The queue" + queueName + " in service " + serviceName + " is unavailable.");
 
-        return clientDeleted;
+        return deletedClient;
     }
 }

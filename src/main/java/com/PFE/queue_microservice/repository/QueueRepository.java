@@ -9,11 +9,11 @@ import java.util.List;
 @Repository
 public interface QueueRepository extends MongoRepository <Queue,Integer> {
 
-    List<Queue> findByServiceId(int serviceId);
+    List<Queue> findByServiceId(String serviceId);
 
     List<Queue> findByServiceName(String serviceName);
 
-    Queue findByQueueId(int queueId);
+    Queue findByQueueId(String queueId);
 
     Queue findByQueueName(String queueName);
 }
