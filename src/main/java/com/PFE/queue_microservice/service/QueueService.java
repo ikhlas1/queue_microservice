@@ -5,7 +5,6 @@ import com.PFE.queue_microservice.model.Queue;
 import com.PFE.queue_microservice.payload.Notification;
 import com.PFE.queue_microservice.payload.TimeStamp;
 import com.PFE.queue_microservice.repository.QueueRepository;
-import org.bson.types.ObjectId;
 import org.springframework.amqp.rabbit.core.RabbitMessagingTemplate;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.core.env.Environment;
@@ -324,15 +323,7 @@ public class QueueService {
     }
 
     public void generateTimeStamp(Queue queue, Client client, String operationType, LocalDateTime localDateTime) {
-        localDateTime.getDayOfMonth();
-        localDateTime.getMonthValue();
-        localDateTime.getYear();
-        //localDateTime.getDayOfWeek().getValue();
-        //localDateTime.getDayOfYear();
-        localDateTime.getHour();
-        localDateTime.getMinute();
-        localDateTime.getSecond();
-        localDateTime.getNano();
+
         TimeStamp timeStamp = new TimeStamp(queue.getQueueId(),
                 queue.getServiceId(),
                 client,
