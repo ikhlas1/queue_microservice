@@ -5,7 +5,6 @@ import com.PFE.queue_microservice.service.QueueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.LocalDateTime;
 import java.util.List;
 
 @RestController
@@ -23,6 +22,7 @@ public class QueueController {
 
     @GetMapping ("/getByQueueId")
     public Queue findByQueueId(@RequestParam(name = "queueId") String queueId){
+
         return queueService.findByQueueId(queueId);
     }
 
@@ -87,9 +87,7 @@ public class QueueController {
                                    @RequestParam(name = "phoneNumber")String phoneNumber,
                                    @RequestParam(name = "emailAddress")String emailAddress){
 
-        Queue q = queueService.addClient(queueId, phoneNumber, emailAddress);
-
-        return q;
+        return queueService.addClient(queueId, phoneNumber, emailAddress);
     }
 
     @PutMapping ("/deleteClient")
@@ -100,8 +98,8 @@ public class QueueController {
     }
 
     @DeleteMapping ("/deleteQueueById")
-    public String deleteQueue(@RequestParam("id") int id){
-         queueService.delete(id);
+    public String deleteQueue(@RequestParam("id") String id){
+         queueService.deleteQueue(id);
          return "Queue deleted successfully";
     }
 }

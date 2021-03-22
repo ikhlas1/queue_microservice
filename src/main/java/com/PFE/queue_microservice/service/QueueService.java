@@ -3,6 +3,7 @@ package com.PFE.queue_microservice.service;
 import com.PFE.queue_microservice.model.Client;
 import com.PFE.queue_microservice.model.Queue;
 import com.PFE.queue_microservice.payload.Notification;
+import com.PFE.queue_microservice.payload.ServiceQueue;
 import com.PFE.queue_microservice.payload.TimeStamp;
 import com.PFE.queue_microservice.repository.QueueRepository;
 import org.springframework.amqp.rabbit.core.RabbitMessagingTemplate;
@@ -32,31 +33,53 @@ public class QueueService {
     }
 
     public Queue addQueue(Queue q) {
-        return queueRepository.insert(q);
+
+        //Add the queue to dB
+        q = queueRepository.insert(q);
+        //Set the payload
+        ServiceQueue serviceQueue = new ServiceQueue(q.getServiceId(), q.getQueueId());
+        //Asynchronous communication via RabbitMQ
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.service")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.addqueue")),
+                serviceQueue);
+        return q;
     }
 
     public Queue updateQueue(Queue q) {
         return queueRepository.save(q);
     }
 
-    public void delete(int id) {
+    public void deleteQueue(String id) {
+        Queue q = findByQueueId(id);
+        System.out.println(q);
+        ServiceQueue serviceQueue = new ServiceQueue(q.getServiceId(), q.getQueueId());
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.service")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.removequeue")),
+                serviceQueue);
         queueRepository.deleteById(id);
     }
 
     public List<Queue> findByServiceId(String serviceId) {
+
         return queueRepository.findByServiceId(serviceId);
     }
 
     public List<Queue> findByServiceName(String serviceName) {
-        return queueRepository.findByServiceName(serviceName);
 
+        return queueRepository.findByServiceName(serviceName);
     }
 
     public Queue findByQueueId(String queueId) {
+
         return queueRepository.findByQueueId(queueId);
     }
 
     public Queue findByQueueName(String queueName) {
+
         return queueRepository.findByQueueName(queueName);
     }
 
@@ -178,7 +201,7 @@ public class QueueService {
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.turn")),
                 notification);
     }
@@ -189,7 +212,7 @@ public class QueueService {
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.turn")),
                 notification);
     }
@@ -200,7 +223,7 @@ public class QueueService {
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.late")),
                 notification);
     }
@@ -211,7 +234,7 @@ public class QueueService {
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.added")),
                 notification);
     }
@@ -225,7 +248,7 @@ public class QueueService {
             Notification notification = generateNotification(queue, queue.getClientQueue().get(i), notificationCode);
             if (!notification.getContactInfo().isEmpty())
             rabbitMessagingTemplate.convertAndSend(
-                    Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                    Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                     Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.status")),
                     notification);
             i++;
@@ -338,7 +361,7 @@ public class QueueService {
         //timeStamp.setStampId("");
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.timestamp")),
                 timeStamp);
     }

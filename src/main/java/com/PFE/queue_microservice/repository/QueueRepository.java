@@ -7,7 +7,7 @@ import org.springframework.stereotype.Repository;
 import java.util.List;
 
 @Repository
-public interface QueueRepository extends MongoRepository <Queue,Integer> {
+public interface QueueRepository extends MongoRepository <Queue,String> {
 
     List<Queue> findByServiceId(String serviceId);
 
