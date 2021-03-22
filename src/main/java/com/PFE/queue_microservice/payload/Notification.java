@@ -6,9 +6,10 @@ import lombok.Setter;
 @Getter
 @Setter
 public class Notification {
-
+    // To be deleted and we'll have  to change the code accordingly asap.
     private String serviceName;
     private String queueName;
+
     private String contactInfo;
     private String subject;
     private String msgContent;

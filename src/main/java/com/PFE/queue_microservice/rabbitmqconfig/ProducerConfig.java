@@ -49,39 +49,69 @@ public class ProducerConfig{
     }
 
     @Bean
-    DirectExchange exchange() {
+    org.springframework.amqp.core.Queue addQueue() {
 
-        return new DirectExchange(env.getProperty("rabbitmq.exchange.name"));
+        return new org.springframework.amqp.core.Queue(Objects.requireNonNull(env.getProperty("rabbitmq.queue.addqueue")), false);
     }
 
     @Bean
-    Binding turnBinding(org.springframework.amqp.core.Queue turnQueue, DirectExchange exchange) {
+    org.springframework.amqp.core.Queue removeQueue() {
 
-        return BindingBuilder.bind(turnQueue).to(exchange).with(env.getProperty("rabbitmq.routingkey.turn"));
+        return new org.springframework.amqp.core.Queue(Objects.requireNonNull(env.getProperty("rabbitmq.queue.removequeue")), false);
     }
 
     @Bean
-    Binding lateBinding(org.springframework.amqp.core.Queue lateQueue, DirectExchange exchange) {
+    DirectExchange notificationExchange() {
 
-        return BindingBuilder.bind(lateQueue).to(exchange).with(env.getProperty("rabbitmq.routingkey.late"));
+        return new DirectExchange(env.getProperty("rabbitmq.exchange.notification"));
     }
 
     @Bean
-    Binding addedBinding(org.springframework.amqp.core.Queue addedQueue, DirectExchange exchange) {
+    DirectExchange serviceExchange() {
 
-        return BindingBuilder.bind(addedQueue).to(exchange).with(env.getProperty("rabbitmq.routingkey.added"));
+        return new DirectExchange(env.getProperty("rabbitmq.exchange.service"));
     }
 
     @Bean
-    Binding statusBinding(org.springframework.amqp.core.Queue statusQueue, DirectExchange exchange) {
+    Binding addqueueBinding(org.springframework.amqp.core.Queue addQueue, DirectExchange serviceExchange) {
 
-        return BindingBuilder.bind(statusQueue).to(exchange).with(env.getProperty("rabbitmq.routingkey.status"));
+        return BindingBuilder.bind(addQueue).to(serviceExchange).with(env.getProperty("rabbitmq.routingkey.addqueue"));
     }
 
     @Bean
-    Binding timeStampBinding(org.springframework.amqp.core.Queue timeStampQueue, DirectExchange exchange) {
+    Binding removequeueBinding(org.springframework.amqp.core.Queue removeQueue, DirectExchange serviceExchange) {
 
-        return BindingBuilder.bind(timeStampQueue).to(exchange).with(env.getProperty("rabbitmq.routingkey.timestamp"));
+        return BindingBuilder.bind(removeQueue).to(serviceExchange).with(env.getProperty("rabbitmq.routingkey.removequeue"));
+    }
+
+    @Bean
+    Binding turnBinding(org.springframework.amqp.core.Queue turnQueue, DirectExchange notificationExchange) {
+
+        return BindingBuilder.bind(turnQueue).to(notificationExchange).with(env.getProperty("rabbitmq.routingkey.turn"));
+    }
+
+    @Bean
+    Binding lateBinding(org.springframework.amqp.core.Queue lateQueue, DirectExchange notificationExchange) {
+
+        return BindingBuilder.bind(lateQueue).to(notificationExchange).with(env.getProperty("rabbitmq.routingkey.late"));
+    }
+
+    @Bean
+    Binding addedBinding(org.springframework.amqp.core.Queue addedQueue, DirectExchange notificationExchange) {
+
+        return BindingBuilder.bind(addedQueue).to(notificationExchange).with(env.getProperty("rabbitmq.routingkey.added"));
+    }
+
+    @Bean
+    Binding statusBinding(org.springframework.amqp.core.Queue statusQueue, DirectExchange notificationExchange) {
+
+        return BindingBuilder.bind(statusQueue).to(notificationExchange).with(env.getProperty("rabbitmq.routingkey.status"));
+    }
+
+    @Bean
+    Binding timeStampBinding(org.springframework.amqp.core.Queue timeStampQueue, DirectExchange notificationExchange) {
+
+        return BindingBuilder.bind(timeStampQueue).to(notificationExchange).with(env.getProperty("rabbitmq.routingkey.timestamp"));
     }
 
     @Bean

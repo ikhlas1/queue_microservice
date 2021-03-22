@@ -3,6 +3,7 @@ package com.PFE.queue_microservice.service;
 import com.PFE.queue_microservice.model.Client;
 import com.PFE.queue_microservice.model.Queue;
 import com.PFE.queue_microservice.payload.Notification;
+import com.PFE.queue_microservice.payload.ServiceQueue;
 import com.PFE.queue_microservice.payload.TimeStamp;
 import com.PFE.queue_microservice.repository.QueueRepository;
 import org.springframework.amqp.rabbit.core.RabbitMessagingTemplate;
@@ -32,70 +33,97 @@ public class QueueService {
     }
 
     public Queue addQueue(Queue q) {
-        return queueRepository.insert(q);
+
+        //Add the queue to dB
+        q = queueRepository.insert(q);
+        //Set the payload
+        ServiceQueue serviceQueue = new ServiceQueue(q.getServiceId(), q.getQueueId());
+        //Asynchronous communication via RabbitMQ
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.service")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.addqueue")),
+                serviceQueue);
+        return q;
     }
 
     public Queue updateQueue(Queue q) {
         return queueRepository.save(q);
     }
 
-    public void delete(int id) {
+    public void deleteQueue(String id) {
+        Queue q = findByQueueId(id);
+        System.out.println(q);
+        ServiceQueue serviceQueue = new ServiceQueue(q.getServiceId(), q.getQueueId());
+        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
+        rabbitMessagingTemplate.convertAndSend(
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.service")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.removequeue")),
+                serviceQueue);
         queueRepository.deleteById(id);
     }
 
-    public List<Queue> findByServiceId(int serviceId) {
+    public List<Queue> findByServiceId(String serviceId) {
+
         return queueRepository.findByServiceId(serviceId);
     }
 
     public List<Queue> findByServiceName(String serviceName) {
-        return queueRepository.findByServiceName(serviceName);
 
+        return queueRepository.findByServiceName(serviceName);
     }
 
-    public Queue findByQueueId(int queueId) {
+    public Queue findByQueueId(String queueId) {
+
         return queueRepository.findByQueueId(queueId);
     }
 
     public Queue findByQueueName(String queueName) {
+
         return queueRepository.findByQueueName(queueName);
     }
 
-    public Queue updateQueueSize(int queueId, int queueSize) {
+    public Queue updateQueueSize(String queueId, int queueSize) {
         Queue q;
         q = findByQueueId(queueId);
         q.setQueueSize(queueSize);
         return queueRepository.save(q);
     }
 
-    public Queue updateQueueNotificationFactor(int queueId, int notificationFactor) {
+    public Queue updateQueueNotificationFactor(String queueId, int notificationFactor) {
         Queue q;
         q = findByQueueId(queueId);
         q.setNotificationFactor(notificationFactor);
         return queueRepository.save(q);
     }
 
-    public Queue updateQueueName(int queueId, String queueName) {
+    public Queue updateQueueName(String queueId, String queueName) {
         Queue q;
         q = findByQueueId(queueId);
         q.setQueueName(queueName);
         return queueRepository.save(q);
     }
 
-    public Queue updateQueueState(int queueId, boolean queueState) {
+    public Queue updateQueueState(String queueId, boolean queueState) {
+
         Queue q;
         q = findByQueueId(queueId);
+        if (!queueState) {
+            this.generateStatusNotification(q);
+            //delete clients or leave them?
+        }
         q.setQueueState(queueState);
         return queueRepository.save(q);
     }
 
-    public Queue updateQueueServiceName(int queueId, String queueServiceName) {
+    public Queue updateQueueServiceName(String queueId, String queueServiceName) {
         Queue q;
         q = findByQueueId(queueId);
         q.setServiceName(queueServiceName);
         return queueRepository.save(q);
     }
 
-    public Queue addClient(int queueId, String phoneNumber, String emailAddress){
+    public Queue addClient(String queueId, String phoneNumber, String emailAddress){
         Client c;
         Queue q = findByQueueId(queueId);
         int clientQueueSize = q.getClientQueue().size();
@@ -103,18 +131,66 @@ public class QueueService {
         if (clientQueueSize == 0) {//Empty clients queue
             c = new Client(1, phoneNumber, emailAddress);
             q.addClient(c);
+            LocalDateTime localDateTime;
+            //Send to rabbitmq-added-queue
+            generateAddedNotification(q);
+            //Send to rabbitmq-timestamp-queue
+            localDateTime = LocalDateTime.now();
+            generateTimeStamp(q, q.getClientQueue().get(q.getClientQueue().size()-1),"Client is added.", localDateTime);
+            //Update the queue with the added client
+            q = queueRepository.save(q);
         } else if (clientQueueSize < q.getQueueSize()) {//Clients queue isn't full
             c = new Client(q.getClientQueue().get(q.getClientQueue().size() - 1).getQueueNumber() + 1, phoneNumber, emailAddress);
             q.addClient(c);
+            LocalDateTime localDateTime;
+            //Send to rabbitmq-added-queue
+            generateAddedNotification(q);
+            //Send to rabbitmq-timestamp-queue
+            localDateTime = LocalDateTime.now();
+            generateTimeStamp(q, q.getClientQueue().get(q.getClientQueue().size()-1),"Client is added.", localDateTime);
+            //Update the queue with the added client
+            q = queueRepository.save(q);
         } else
             System.out.printf("Can't add more clients because the queue %s in service %s is full.%n",q.getQueueName(), q.getServiceName());
 
         return q;
     }
 
-    public Queue deleteClient(int queueId){
+    public Queue deleteClient(String queueId, String reason){
         Queue q = findByQueueId(queueId);
-        q.deleteClient();
+        LocalDateTime localDateTime;
+        Client deletedClient;
+
+        if (!q.getClientQueue().isEmpty()) {
+
+            deletedClient = q.deleteClient();
+            //Update the QueueDB after client deletion
+            q = queueRepository.save(q);
+
+            if (reason.equals("late")) {
+                //Send to rabbitmq-late-queue
+                generateLateNotification(q, deletedClient);
+                localDateTime = LocalDateTime.now();
+                //Send to rabbitmq-timestamp-queue
+                generateTimeStamp(q, deletedClient,"Client is late.", localDateTime);
+            } else if (reason.equals("done")) {
+                //Send to rabbitmq-timestamp-queue
+                localDateTime = LocalDateTime.now();
+                generateTimeStamp(q, deletedClient, "Client is done.", localDateTime);
+            }
+
+            //Send to rabbitmq-turn-queue
+            generateTurnNotification(q);
+            localDateTime = LocalDateTime.now();
+            //Send to rabbitmq-timestamp-queue
+            generateTimeStamp(q, q.getClientQueue().get(0), "Client's turn.", localDateTime);
+            //Send to rabbitmq-turn-queue
+            if (q.getNotificationFactor() < q.getClientQueue().size())
+                generateAlmostTurnNotification(q);
+
+        } else
+            System.out.println("There are no clients in the Queue "+q.getQueueName());
+
 
         return q;
     }
@@ -125,7 +201,7 @@ public class QueueService {
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.turn")),
                 notification);
     }
@@ -136,18 +212,18 @@ public class QueueService {
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.turn")),
                 notification);
     }
 
-    public void generateLateNotification(Queue queue) {
+    public void generateLateNotification(Queue queue, Client client) {
         String notificationCode = "late";
-        Notification notification = generateNotification(queue,null,notificationCode);
+        Notification notification = generateNotification(queue,client,notificationCode);
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.late")),
                 notification);
     }
@@ -158,7 +234,7 @@ public class QueueService {
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         if (!notification.getContactInfo().isEmpty())
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.added")),
                 notification);
     }
@@ -172,7 +248,7 @@ public class QueueService {
             Notification notification = generateNotification(queue, queue.getClientQueue().get(i), notificationCode);
             if (!notification.getContactInfo().isEmpty())
             rabbitMessagingTemplate.convertAndSend(
-                    Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                    Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                     Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.status")),
                     notification);
             i++;
@@ -217,8 +293,8 @@ public class QueueService {
                         +serviceName+"'s queue "+queueName+".");
                 break;
             case "late": //Client is late, lost their turn
-                clientPhoneNumber = queue.getClientQueue().get(0).getPhoneNumber();
-                clientEmailAddress = queue.getClientQueue().get(0).getEmailAddress();
+                clientPhoneNumber = client.getPhoneNumber();
+                clientEmailAddress = client.getEmailAddress();
                 if (!clientPhoneNumber.isEmpty())
                     notification.setContactInfo(clientPhoneNumber);
                 else if (!clientEmailAddress.isEmpty())
@@ -270,18 +346,22 @@ public class QueueService {
     }
 
     public void generateTimeStamp(Queue queue, Client client, String operationType, LocalDateTime localDateTime) {
-        TimeStamp timeStamp = new TimeStamp();
 
-        //timeStamp.setStampId(0);
-        timeStamp.setQueueId(queue.getQueueId());
-        timeStamp.setServiceId(queue.getServiceId());
-        timeStamp.setClient(client);
-        timeStamp.setTimeStamp(localDateTime);
-        timeStamp.setOperationType(operationType);
-
+        TimeStamp timeStamp = new TimeStamp(queue.getQueueId(),
+                queue.getServiceId(),
+                client,
+                localDateTime.getYear(),
+                localDateTime.getMonthValue(),
+                localDateTime.getDayOfMonth(),
+                localDateTime.getHour(),
+                localDateTime.getMinute(),
+                localDateTime.getSecond(),
+                localDateTime.getNano(),
+                operationType);
+        //timeStamp.setStampId("");
         rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
         rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.name")),
+                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.notification")),
                 Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.timestamp")),
                 timeStamp);
     }
