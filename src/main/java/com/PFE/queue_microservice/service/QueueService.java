@@ -136,7 +136,7 @@ public class QueueService {
             generateAddedNotification(q);
             //Send to rabbitmq-timestamp-queue
             localDateTime = LocalDateTime.now();
-            generateTimeStamp(q, q.getClientQueue().get(q.getClientQueue().size()-1),"Client is added.", localDateTime);
+            generateTimeStamp(q, q.getClientQueue().get(q.getClientQueue().size()-1),"added", localDateTime);
             //Update the queue with the added client
             q = queueRepository.save(q);
         } else if (clientQueueSize < q.getQueueSize()) {//Clients queue isn't full
@@ -147,11 +147,11 @@ public class QueueService {
             generateAddedNotification(q);
             //Send to rabbitmq-timestamp-queue
             localDateTime = LocalDateTime.now();
-            generateTimeStamp(q, q.getClientQueue().get(q.getClientQueue().size()-1),"Client is added.", localDateTime);
+            generateTimeStamp(q, q.getClientQueue().get(q.getClientQueue().size()-1),"added", localDateTime);
             //Update the queue with the added client
             q = queueRepository.save(q);
         } else
-            System.out.printf("Can't add more clients because the queue %s in service %s is full.%n",q.getQueueName(), q.getServiceName());
+            System.out.printf("Queue %s is full.",q.getQueueName());
 
         return q;
     }
@@ -161,36 +161,31 @@ public class QueueService {
         LocalDateTime localDateTime;
         Client deletedClient;
 
+        deletedClient = q.deleteClient();
+        //Update the QueueDB after client deletion
+        q = queueRepository.save(q);
+
+        if (reason.equals("late")) {
+            //Send to rabbitmq-late-queue
+            generateLateNotification(q, deletedClient);
+            localDateTime = LocalDateTime.now();
+            //Send to rabbitmq-timestamp-queue
+            generateTimeStamp(q, deletedClient,"late", localDateTime);
+        } else if (reason.equals("done")) {
+            //Send to rabbitmq-timestamp-queue
+            localDateTime = LocalDateTime.now();
+            generateTimeStamp(q, deletedClient, "done", localDateTime);
+        }
         if (!q.getClientQueue().isEmpty()) {
-
-            deletedClient = q.deleteClient();
-            //Update the QueueDB after client deletion
-            q = queueRepository.save(q);
-
-            if (reason.equals("late")) {
-                //Send to rabbitmq-late-queue
-                generateLateNotification(q, deletedClient);
-                localDateTime = LocalDateTime.now();
-                //Send to rabbitmq-timestamp-queue
-                generateTimeStamp(q, deletedClient,"Client is late.", localDateTime);
-            } else if (reason.equals("done")) {
-                //Send to rabbitmq-timestamp-queue
-                localDateTime = LocalDateTime.now();
-                generateTimeStamp(q, deletedClient, "Client is done.", localDateTime);
-            }
-
             //Send to rabbitmq-turn-queue
             generateTurnNotification(q);
             localDateTime = LocalDateTime.now();
             //Send to rabbitmq-timestamp-queue
-            generateTimeStamp(q, q.getClientQueue().get(0), "Client's turn.", localDateTime);
+            generateTimeStamp(q, q.getClientQueue().get(0), "turn", localDateTime);
             //Send to rabbitmq-turn-queue
             if (q.getNotificationFactor() < q.getClientQueue().size())
                 generateAlmostTurnNotification(q);
-
-        } else
-            System.out.println("There are no clients in the Queue "+q.getQueueName());
-
+        }
 
         return q;
     }
@@ -276,8 +271,8 @@ public class QueueService {
                         notification.setContactInfo(clientEmailAddress);
                     else
                         notification.setContactInfo("");
-                    notification.setSubject("Client's Turn Notification");
-                    notification.setMsgContent("There are " + notificationFactor + " clients left before it's your turn.");
+                    notification.setSubject(serviceName+" - "+queueName);
+                    notification.setMsgContent(notificationFactor + " Clients left before you");
                 break;
             case "turn": //Client's turn is up
                 clientPhoneNumber = queue.getClientQueue().get(0).getPhoneNumber();
@@ -288,9 +283,8 @@ public class QueueService {
                     notification.setContactInfo(clientEmailAddress);
                 else
                     notification.setContactInfo("");
-                notification.setSubject("Client's Turn Notification");
-                notification.setMsgContent("It's your turn, please present yourself at the service "
-                        +serviceName+"'s queue "+queueName+".");
+                notification.setSubject(serviceName+" - "+queueName);
+                notification.setMsgContent("It's your turn, please present yourself at the reception.");
                 break;
             case "late": //Client is late, lost their turn
                 clientPhoneNumber = client.getPhoneNumber();
@@ -301,8 +295,8 @@ public class QueueService {
                     notification.setContactInfo(clientEmailAddress);
                 else
                     notification.setContactInfo("");
-                notification.setSubject("Client's Late Notification");
-                notification.setMsgContent("You're late!\nYou've been removed from the queue: "+ queueName +" in service: "+ serviceName);
+                notification.setSubject(serviceName+" - "+queueName);
+                notification.setMsgContent("Sorry, you've been removed for being late.");
                 break;
             case "added": //Client added to the queue
                 clientPhoneNumber = queue.getClientQueue().get(queue.getClientQueue().size() - 1).getPhoneNumber();
@@ -313,12 +307,11 @@ public class QueueService {
                     notification.setContactInfo(clientEmailAddress);
                 else
                     notification.setContactInfo("");
-                notification.setSubject("Client Added Notification");
-                notification.setMsgContent(String.format("Added to the queue %s in service %s.\n" +
-                        "Queue number: %d.\n" +
-                        "You will be notified when there are %d clients before you.\n" +
-                        "You will also be notified when it's your turn.",
-                        queueName, serviceName,queue.getClientQueue().get(queue.getClientQueue().size() - 1).getQueueNumber() + 1, notificationFactor));
+                notification.setSubject(serviceName+" - "+queueName);
+                notification.setMsgContent(String.format("Current number: %d.\n"+
+                        "Your number: %d.\n" +
+                        "You will be notified when there are %d clients before you, " +
+                        "and when it's your turn.",queue.getClientQueue().get(0).getQueueNumber(),queue.getClientQueue().get(queue.getClientQueue().size() - 1).getQueueNumber(), notificationFactor));
                 break;
             case "status": //Queue status updated (true to false or vice versa)
                 clientPhoneNumber = client.getPhoneNumber();
@@ -329,13 +322,12 @@ public class QueueService {
                     notification.setContactInfo(clientEmailAddress);
                 else
                     notification.setContactInfo("");
-                notification.setSubject("Queue Status Notification");
+                notification.setSubject(serviceName+" - "+queueName);
                 if (!queue.isQueueState()) {
-                    notification.setMsgContent(String.format("The queue %s in service %s is no longer available.\n" +
-                            "You will be notified when it's available again.", queue.getQueueName(), queue.getServiceName()));
+                    notification.setMsgContent("The queue is temporarily unavailable." +
+                            "You will be notified when it's up again.");
                 } else
-                    notification.setMsgContent(String.format("The queue %s in service %s is now available.\n",
-                            queue.getQueueName(), queue.getServiceName()));
+                    notification.setMsgContent("The queue is available again.");
 
                 break;
             default:
