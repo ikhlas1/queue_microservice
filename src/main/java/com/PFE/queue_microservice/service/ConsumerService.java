@@ -5,8 +5,6 @@ import org.springframework.amqp.rabbit.annotation.RabbitListener;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
-import java.util.ArrayList;
-
 @Service
 public class ConsumerService {
 
@@ -14,7 +12,8 @@ public class ConsumerService {
     QueueRepository queueRepository;
 
     @RabbitListener(queues = "${rabbitmq.queue.removeservice}" )
-    public void removeServiceQueues(ArrayList<String> queueIdList){
-            queueIdList.forEach(id -> queueRepository.deleteById(id));
+    public void removeServiceQueues(String serviceId){
+        queueRepository.findByServiceId(serviceId).forEach(queue ->
+                queueRepository.deleteById(queue.getQueueId()));
     }
 }

@@ -3,7 +3,6 @@ package com.PFE.queue_microservice.service;
 import com.PFE.queue_microservice.model.Client;
 import com.PFE.queue_microservice.model.Queue;
 import com.PFE.queue_microservice.payload.Notification;
-import com.PFE.queue_microservice.payload.ServiceQueue;
 import com.PFE.queue_microservice.payload.TimeStamp;
 import com.PFE.queue_microservice.repository.QueueRepository;
 import org.springframework.amqp.rabbit.core.RabbitMessagingTemplate;
@@ -29,37 +28,23 @@ public class QueueService {
 
 
     public List<Queue> getAll() {
+
         return queueRepository.findAll();
     }
 
     public Queue addQueue(Queue q) {
 
-        //Add the queue to dB
         q = queueRepository.insert(q);
-        //Set the payload
-        ServiceQueue serviceQueue = new ServiceQueue(q.getServiceId(), q.getQueueId());
-        //Asynchronous communication via RabbitMQ
-        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
-        rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.service")),
-                Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.addqueue")),
-                serviceQueue);
         return q;
     }
 
     public Queue updateQueue(Queue q) {
+
         return queueRepository.save(q);
     }
 
     public void deleteQueue(String id) {
-        Queue q = findByQueueId(id);
-        System.out.println(q);
-        ServiceQueue serviceQueue = new ServiceQueue(q.getServiceId(), q.getQueueId());
-        rabbitMessagingTemplate.setMessageConverter(this.mappingJackson2MessageConverter);
-        rabbitMessagingTemplate.convertAndSend(
-                Objects.requireNonNull(env.getProperty("rabbitmq.exchange.service")),
-                Objects.requireNonNull(env.getProperty("rabbitmq.routingkey.removequeue")),
-                serviceQueue);
+
         queueRepository.deleteById(id);
     }
 

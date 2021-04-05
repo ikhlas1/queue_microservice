@@ -67,35 +67,12 @@ public class ExchangeBindingsConfig {
     }
 
     @Bean
-    org.springframework.amqp.core.Queue addQueue() {
-
-        return new org.springframework.amqp.core.Queue(Objects.requireNonNull(env.getProperty("rabbitmq.queue.addqueue")), false);
-    }
-
-    @Bean
-    org.springframework.amqp.core.Queue removeQueue() {
-
-        return new org.springframework.amqp.core.Queue(Objects.requireNonNull(env.getProperty("rabbitmq.queue.removequeue")), false);
-    }
-
-    @Bean
     org.springframework.amqp.core.Queue removeService() {
 
         return new org.springframework.amqp.core.Queue(Objects.requireNonNull(env.getProperty("rabbitmq.queue.removeservice")), false);
     }
 
     //Bindings
-    @Bean
-    Binding addqueueBinding(org.springframework.amqp.core.Queue addQueue, DirectExchange serviceExchange) {
-
-        return BindingBuilder.bind(addQueue).to(serviceExchange).with(env.getProperty("rabbitmq.routingkey.addqueue"));
-    }
-
-    @Bean
-    Binding removequeueBinding(org.springframework.amqp.core.Queue removeQueue, DirectExchange serviceExchange) {
-
-        return BindingBuilder.bind(removeQueue).to(serviceExchange).with(env.getProperty("rabbitmq.routingkey.removequeue"));
-    }
 
     @Bean
     Binding turnBinding(org.springframework.amqp.core.Queue turnQueue, DirectExchange notificationExchange) {
