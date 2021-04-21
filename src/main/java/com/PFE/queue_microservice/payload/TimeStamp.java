@@ -26,7 +26,7 @@ public class TimeStamp {
     private int minute;
     private int second;
     private int nano;
-    private String operationType; // Client is Added, Client is Done, Client is Late, Client's Turn.
+    private String operationType; //Added, Done, Late, or Turn.
 
     public TimeStamp(String queueId,
                      String serviceId,

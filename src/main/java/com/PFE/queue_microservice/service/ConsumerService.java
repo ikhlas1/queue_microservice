@@ -9,11 +9,12 @@ import org.springframework.stereotype.Service;
 public class ConsumerService {
 
     @Autowired
+    QueueService queueService;
+    @Autowired
     QueueRepository queueRepository;
 
     @RabbitListener(queues = "${rabbitmq.queue.removeservice}" )
     public void removeServiceQueues(String serviceId){
-        queueRepository.findByServiceId(serviceId).forEach(queue ->
-                queueRepository.deleteById(queue.getQueueId()));
+        queueService.deleteQueues(serviceId);
     }
 }

@@ -1,17 +1,18 @@
 package com.PFE.queue_microservice.model;
 
-import lombok.Getter;
-import lombok.RequiredArgsConstructor;
-import lombok.Setter;
+import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
-import java.util.List;
+import java.util.ArrayList;
+import java.util.Iterator;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 
 @Getter
 @Setter
-@RequiredArgsConstructor
+@NoArgsConstructor
+@AllArgsConstructor
 @Document(collection = "Queue")
 public class Queue {
     @Id
@@ -19,42 +20,59 @@ public class Queue {
     private String queueName;
     private int queueSize;
     private int notificationFactor;
-    private boolean queueState;//on or off
     private String serviceName;
     private String serviceId;
-    private List<Client> clientQueue ;
+    private ArrayList<Client> clientQueue ;
 
 
 
-    public boolean addClient (Client c){
-        boolean clientAdded = false;
+    public int addClient (String phoneNumber, String emailAddress){
 
-        if (clientQueue.size() < queueSize && queueState) //The queue isn't full and is available
-        {
-            clientAdded = clientQueue.add(c);
-        } else if (clientQueue.size() >= queueSize && queueState) {
-            //clientAdded = false;
-            System.out.println("The queue"+queueName+" in service "+serviceName+" is full.");
-        } else if (!queueState) {
-            //clientAdded = false;
-            System.out.println("The queue "+queueName+" in service "+serviceName+" is unavailable.");
+        int addedClientIndex = -1;
+        int lastClientIndex = clientQueue.size() - 1;
+
+        if (clientQueue.size() == 0) { //Queue is empty
+            clientQueue.add(new Client(0, phoneNumber, emailAddress));
+            addedClientIndex = 0;
+        } else if (clientQueue.size() < queueSize) { //Queue isn't full
+            clientQueue.add(new Client(clientQueue.get(lastClientIndex).getQueueNumber() + 1, phoneNumber, emailAddress));
+            addedClientIndex = lastClientIndex + 1;
         }
 
-        return clientAdded;
+        return addedClientIndex;
     }
 
-    public Client deleteClient (){
+    public int deleteClient(Client client){
 
-        Client deletedClient = new Client();
+        int deletedClientIndex = -1;
+        int index = -1;
+        Client tempClient;
+        int queueNumber = client.getQueueNumber();
+        Iterator<Client> itr = clientQueue.iterator();
 
-        if (!clientQueue.isEmpty() && queueState) {//The queue isn't empty and is available
-            deletedClient = clientQueue.remove(0);
-        } else if (clientQueue.isEmpty() && queueState) {
-            System.out.println("The clients queue " + queueName + " in service " + serviceName + " is empty.");
-        } else
-            System.out.println("The queue" + queueName + " in service " + serviceName + " is unavailable.");
+        while (itr.hasNext()) {
+            index++;
+            tempClient = itr.next();
+            if (queueNumber == tempClient.getQueueNumber()) {
+                itr.remove();
+                deletedClientIndex = index;
+                break;
+            }
+        }
 
-        return deletedClient;
+        return deletedClientIndex;
     }
+//    public Client deleteClient (){
+//
+//        Client deletedClient = new Client();
+//
+//        if (!clientQueue.isEmpty() && queueState) {//The queue isn't empty and is available
+//            deletedClient = clientQueue.remove(0);
+//        } else if (clientQueue.isEmpty() && queueState) {
+//            System.out.println("The clients queue " + queueName + " in service " + serviceName + " is empty.");
+//        }
+//
+//        return deletedClient;
+//    }
 
 }

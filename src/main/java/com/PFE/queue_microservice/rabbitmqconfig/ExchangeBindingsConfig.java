@@ -54,11 +54,11 @@ public class ExchangeBindingsConfig {
         return new org.springframework.amqp.core.Queue(Objects.requireNonNull(env.getProperty("rabbitmq.queue.late")), false);
     }
 
-    @Bean
-    org.springframework.amqp.core.Queue statusQueue() {
-
-        return new org.springframework.amqp.core.Queue(Objects.requireNonNull(env.getProperty("rabbitmq.queue.status")), false);
-    }
+//    @Bean
+//    org.springframework.amqp.core.Queue statusQueue() {
+//
+//        return new org.springframework.amqp.core.Queue(Objects.requireNonNull(env.getProperty("rabbitmq.queue.status")), false);
+//    }
 
     @Bean
     org.springframework.amqp.core.Queue timeStampQueue() {
@@ -92,11 +92,6 @@ public class ExchangeBindingsConfig {
         return BindingBuilder.bind(addedQueue).to(notificationExchange).with(env.getProperty("rabbitmq.routingkey.added"));
     }
 
-    @Bean
-    Binding statusBinding(org.springframework.amqp.core.Queue statusQueue, DirectExchange notificationExchange) {
-
-        return BindingBuilder.bind(statusQueue).to(notificationExchange).with(env.getProperty("rabbitmq.routingkey.status"));
-    }
 
     @Bean
     Binding timeStampBinding(org.springframework.amqp.core.Queue timeStampQueue, DirectExchange clientExchange) {

@@ -1,11 +1,16 @@
 package com.PFE.queue_microservice.controller;
 
+import com.PFE.queue_microservice.DTO.ClientForm;
 import com.PFE.queue_microservice.model.Queue;
+import com.PFE.queue_microservice.DTO.QueueDTO;
 import com.PFE.queue_microservice.service.QueueService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.ArrayList;
 import java.util.List;
+
 
 @RestController
 @RequestMapping ("/queue")
@@ -14,92 +19,87 @@ public class QueueController {
     @Autowired
     private QueueService queueService;
 
-    @GetMapping ("/getAll")
-    public List<Queue> getAll(){
+    @GetMapping
+    public String test(@RequestParam String test){
 
-        return queueService.getAll();
+        return test;
     }
 
     @GetMapping ("/getByQueueId")
-    public Queue findByQueueId(@RequestParam(name = "queueId") String queueId){
+    public ResponseEntity<Queue> findByQueueId(@RequestParam(name = "queueId") String queueId,
+                                               @RequestParam(name = "serviceId")String serviceId){
 
-        return queueService.findByQueueId(queueId);
+        return queueService.findByQueueId(queueId, serviceId);
     }
 
-    @GetMapping ("/getByQueueName")
-    public Queue findByQueueName(@RequestParam(name = "queueName") String queueName){
-        return queueService.findByQueueName(queueName);
-    }
+//    @GetMapping ("/getByQueueName")
+//    public Queue findByQueueName(@RequestParam(name = "queueName") String queueName){
+//        return queueService.findByQueueName(queueName);
+//    }
 
-    @GetMapping ("/getByServiceId")
-    public List<Queue> findByServiceId(@RequestParam(name = "serviceId") String serviceId){
+    @GetMapping ("/getQueues")
+    public ResponseEntity<List<Queue>> getQueues(@RequestParam(name = "serviceId") String serviceId){
+
         return queueService.findByServiceId(serviceId);
     }
 
-    @GetMapping ("/getByServiceName")
-    public List<Queue> findByServiceName(@RequestParam(name = "serviceName") String serviceName){
-        return queueService.findByServiceName(serviceName);
-    }
 
-    @PostMapping ("/addQueue")
-    public Queue addQueue(@RequestBody Queue q){
-
-        return queueService.addQueue(q);
-    }
-
-   /* @PutMapping ("/updateQueue")
+    @PutMapping ("/updateQueue")
     public Queue updateQueue(@RequestBody Queue q){
 
         return queueService.updateQueue(q);
-    }*/
+    }
 
     @PutMapping("/updateQueueName")
-    public Queue updateQueueName(@RequestParam(name = "queueId")String queueId,@RequestParam(name = "queueName") String queueName){
-        //Must notify clients of this update, or make sure the queue is offline (empty) before the update
-        return queueService.updateQueueName(queueId,queueName);
+    public ResponseEntity<Queue> updateQueueName(@RequestParam(name = "serviceId")String serviceId,
+                                                 @RequestParam(name = "queueId")String queueId,
+                                                 @RequestParam(name = "queueName") String queueName){
+        //Only update if queue empty
+        return queueService.updateQueueName(serviceId, queueId, queueName);
     }
 
     @PutMapping("/updateQueueNotificationFactor")
-    public Queue updateQueueNotificationFactor(@RequestParam(name = "queueId")String queueId,@RequestParam(name ="notificationFactor") int  notificationFactor){
-        //Must notify clients of this update, or make sure the queue is offline (empty) before the update
-        return queueService.updateQueueNotificationFactor(queueId,notificationFactor);
+    public ResponseEntity<Queue> updateQueueNotificationFactor(@RequestParam(name = "serviceId")String serviceId,
+                                                               @RequestParam(name = "queueId")String queueId,
+                                                               @RequestParam(name ="notificationFactor") int  notificationFactor){
+
+        return queueService.updateQueueNotificationFactor(serviceId, queueId,notificationFactor);
     }
 
     @PutMapping ("/updateQueueSize")
-    public Queue updateQueueSize (@RequestParam(name = "queueId")String queueId,@RequestParam(name ="queueSize") int queueSize){
-        return queueService.updateQueueSize(queueId,queueSize);
+    public ResponseEntity<Queue> updateQueueSize (@RequestParam(name = "serviceId")String serviceId,
+                                                  @RequestParam(name = "queueId")String queueId,
+                                                  @RequestParam(name ="queueSize") int queueSize){
+        return queueService.updateQueueSize(serviceId, queueId, queueSize);
     }
 
-    @PutMapping ("/updateQueueState")
-    public Queue updateQueueState (@RequestParam(name = "queueId")String queueId,@RequestParam(name ="queueState") boolean queueState){
-        //Send to rabbitmq-status-queue
-        return queueService.updateQueueState(queueId,queueState);
-    }
+    @PostMapping ("/addQueue")
+    public ResponseEntity<Queue> addQueue(@RequestBody Queue queueForm){
 
-    @PutMapping("/updateQueueServiceName")
-    public Queue updateQueueServiceName(@RequestParam(name = "queueId")String queueId,@RequestParam(name ="queueServiceName") String queueServiceName){
-
-        return queueService.updateQueueServiceName(queueId,queueServiceName);
+        return queueService.addQueue(queueForm);
     }
 
     @PutMapping ("/addClient")
-    public Queue addClientToQueue (@RequestParam(name = "queueId")String queueId,
-                                   @RequestParam(name = "phoneNumber")String phoneNumber,
-                                   @RequestParam(name = "emailAddress")String emailAddress){
-
-        return queueService.addClient(queueId, phoneNumber, emailAddress);
+    public ResponseEntity<Queue> addClientToQueue (@RequestBody ClientForm clientForm){
+        return queueService.addClient(clientForm);
     }
 
     @PutMapping ("/deleteClient")
-    public Queue deleteClientFromQueue (@RequestParam(name = "queueId")String queueId,
-                                        @RequestParam(name = "reason")String reason){
+    public ResponseEntity<Queue> deleteClient (@RequestBody ClientForm clientForm){
 
-        return queueService.deleteClient(queueId, reason);
+        return queueService.deleteClient(clientForm);
     }
 
     @DeleteMapping ("/deleteQueueById")
-    public String deleteQueue(@RequestParam("id") String id){
-         queueService.deleteQueue(id);
-         return "Queue deleted successfully";
+    public ResponseEntity<QueueDTO> deleteQueue(@RequestParam("serviceId") String serviceId,
+                                              @RequestParam("queueId") String queueId){
+
+         return queueService.deleteQueue(serviceId, queueId);
+    }
+
+    @DeleteMapping ("/deleteQueues")
+    public ResponseEntity<ArrayList<QueueDTO>> deleteQueues(@RequestParam ("serviceId")String serviceId){
+
+        return queueService.deleteQueues(serviceId);
     }
 }

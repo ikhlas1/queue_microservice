@@ -1,29 +1,36 @@
 package com.PFE.queue_microservice.payload;
 
+import lombok.AllArgsConstructor;
 import lombok.Getter;
+import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Getter
 @Setter
+@AllArgsConstructor
+@NoArgsConstructor
 public class Notification {
     // To be deleted and we'll have  to change the code accordingly asap.
-    private String serviceName;
-    private String queueName;
+//    private String serviceName;
+//    private String queueName;
 
     private String contactInfo;
     private String subject;
     private String msgContent;
 
-    public Notification(){
+    public boolean setContactInfo(String phoneNumber, String emailAddress){
+        boolean set;
 
-    }
+        if (!phoneNumber.equals("")){
+            this.contactInfo = phoneNumber;
+            set = true;
+        } else if (!emailAddress.equals("")){
+            this.contactInfo = emailAddress;
+            set = true;
+        } else
+            set = false;
 
-    public Notification(String serviceName, String queueName, String contactInfo, String subject, String msgContent) {
-        this.serviceName = serviceName;
-        this.queueName = queueName;
-        this.contactInfo = contactInfo;
-        this.subject = subject;
-        this.msgContent = msgContent;
+        return set;
     }
 
 
