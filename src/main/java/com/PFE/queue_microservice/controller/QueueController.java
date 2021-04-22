@@ -1,6 +1,7 @@
 package com.PFE.queue_microservice.controller;
 
 import com.PFE.queue_microservice.DTO.ClientForm;
+import com.PFE.queue_microservice.DTO.QueueForm;
 import com.PFE.queue_microservice.model.Queue;
 import com.PFE.queue_microservice.DTO.QueueDTO;
 import com.PFE.queue_microservice.service.QueueService;
@@ -19,15 +20,10 @@ public class QueueController {
     @Autowired
     private QueueService queueService;
 
-    @GetMapping
-    public String test(@RequestParam String test){
 
-        return test;
-    }
-
-    @GetMapping ("/getByQueueId")
-    public ResponseEntity<Queue> findByQueueId(@RequestParam(name = "queueId") String queueId,
-                                               @RequestParam(name = "serviceId")String serviceId){
+    @GetMapping ("/getQueue/{id}")
+    public ResponseEntity<Queue> getQueue(@PathVariable("id") String queueId,
+                                               @RequestParam(name = "sub")String serviceId){
 
         return queueService.findByQueueId(queueId, serviceId);
     }
@@ -38,7 +34,7 @@ public class QueueController {
 //    }
 
     @GetMapping ("/getQueues")
-    public ResponseEntity<List<Queue>> getQueues(@RequestParam(name = "serviceId") String serviceId){
+    public ResponseEntity<List<Queue>> getQueues(@RequestParam(name = "sub") String serviceId){
 
         return queueService.findByServiceId(serviceId);
     }
@@ -74,9 +70,15 @@ public class QueueController {
     }
 
     @PostMapping ("/addQueue")
-    public ResponseEntity<Queue> addQueue(@RequestBody Queue queueForm){
+    public ResponseEntity<Queue> addQueue(@RequestBody QueueForm queueForm,
+                                          @RequestParam(name = "sub")String serviceId,
+                                          @RequestParam(name = "preferred_username")String serviceName){
 
-        return queueService.addQueue(queueForm);
+        Queue queue = new Queue(queueForm.getQueueName(),
+                queueForm.getQueueSize(),
+                queueForm.getNotificationFactor(),
+                serviceName, serviceId );
+        return queueService.addQueue(queue);
     }
 
     @PutMapping ("/addClient")

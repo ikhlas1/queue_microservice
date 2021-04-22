@@ -24,6 +24,13 @@ public class Queue {
     private String serviceId;
     private ArrayList<Client> clientQueue ;
 
+    public Queue(String queueName, int queueSize, int notificationFactor, String serviceName, String serviceId) {
+        this.queueName = queueName;
+        this.queueSize = queueSize;
+        this.notificationFactor = notificationFactor;
+        this.serviceName = serviceName;
+        this.serviceId = serviceId;
+    }
 
 
     public int addClient (String phoneNumber, String emailAddress){

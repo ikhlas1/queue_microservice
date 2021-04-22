@@ -126,33 +126,23 @@ public class QueueService {
     }
 
     public ResponseEntity<List<Queue>> findByServiceId(String serviceId) {
-        HttpHeaders responseHeaders = new HttpHeaders();
 
         if (queueRepository.existsByServiceId(serviceId)){
-            responseHeaders.set("Custom-Header", "service_found");
-            return ResponseEntity.status(200)
-                    .headers(responseHeaders)
+            return ResponseEntity.status(HttpStatus.OK)
                     .body(queueRepository.findByServiceId(serviceId));
         } else {
-            responseHeaders.set("Custom-Header", "service_not_found");
-            return ResponseEntity.status(404)
-                    .headers(responseHeaders)
+            return ResponseEntity.status(HttpStatus.NO_CONTENT)
                     .body(null);
         }
     }
 
     public ResponseEntity<Queue> findByQueueId(String queueId, String serviceId) {
 
-        HttpHeaders responseHeaders = new HttpHeaders();
         if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
-            responseHeaders.set("Custom-Header","queue_found");
-            return  ResponseEntity.status(200)
-                    .headers(responseHeaders)
+            return  ResponseEntity.status(HttpStatus.OK)
                     .body(queueRepository.findByQueueIdAndServiceId(queueId, serviceId));
         } else {
-            responseHeaders.set("Custom-Header", "queue_not_found");
-            return ResponseEntity.status(404)
-                    .headers(responseHeaders)
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
                     .body(null);
         }
     }
