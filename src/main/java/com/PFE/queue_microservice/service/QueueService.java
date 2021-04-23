@@ -255,7 +255,7 @@ public class QueueService {
             sendNotificationAndTimestamp(queue, clientIndex, client, reason, localDateTime);
             if (clientIndex == 0){
                 //Deleted first client, must generate TURN and ALMOST_TURN notifications/timestamps
-                sendNotificationAndTimestamp(queue,0, queue.getClientQueue().get(0), Reason.TURN.getValue(), localDateTime);
+                sendNotificationAndTimestamp(queue,0, null, Reason.TURN.getValue(), localDateTime);
                 sendNotificationAndTimestamp(queue, 0, null, Reason.ALMOST_TURN.getValue(), localDateTime);
             } else if ( clientIndex <= queue.getNotificationFactor()){
                 //Deleted 2nd or 3rd or .. until the notificationFactor rank, generate ALMOST_TURN notification/timestamp
