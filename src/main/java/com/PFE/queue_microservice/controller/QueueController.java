@@ -55,17 +55,17 @@ public class QueueController {
     }
 
     @PutMapping ("/addClient/{id}")
-    public ResponseEntity<Queue> addClientToQueue (@RequestBody Client clientForm,
-                                                   @RequestParam(name = "sub")String serviceId,
-                                                   @PathVariable("id")String queueId){
+    public ResponseEntity<Queue> addClientToQueue (@Valid @RequestBody Client clientForm,
+                                                   @Valid @NotBlank(message = "Unauthorized request.") @RequestParam(name = "sub")String serviceId,
+                                                   @Valid @NotBlank(message = "Invalid Queue ID.") @PathVariable("id")String queueId){
 
         return queueService.addClient(clientForm, serviceId, queueId);
     }
 
     @PutMapping ("/deleteClient/{id}")
     public ResponseEntity<Queue> deleteClient (@RequestBody ClientForm clientForm,
-                                               @RequestParam(name = "sub")String serviceId,
-                                               @PathVariable("id")String queueId){
+                                               @NotBlank(message = "Unauthorized request.") @RequestParam(name = "sub")String serviceId,
+                                               @NotBlank(message = "Invalid Queue ID.") @PathVariable("id")String queueId){
 
         return queueService.deleteClient(clientForm, serviceId, queueId);
     }
