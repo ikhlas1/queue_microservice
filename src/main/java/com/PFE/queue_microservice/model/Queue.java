@@ -39,7 +39,7 @@ public class Queue {
         int lastClientIndex = clientQueue.size() - 1;
 
         if (clientQueue.size() == 0) { //Queue is empty
-            clientQueue.add(new Client(0,
+            clientQueue.add(new Client(1,
                     firstName,
                     lastName,
                     phoneNumber,

@@ -29,7 +29,9 @@ public class Client {
 
         return (this.queueNumber == client.getQueueNumber()
                 && this.phoneNumber.equals(client.getPhoneNumber())
-                && this.emailAddress.equals(client.getEmailAddress()));
+                && this.emailAddress.equals(client.getEmailAddress())
+                && this.firstName.equals(client.getFirstName())
+                && this.lastName.equals(client.getLastName())) ;
     }
 }
 
