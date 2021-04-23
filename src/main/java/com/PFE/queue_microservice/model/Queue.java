@@ -4,9 +4,9 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import javax.validation.constraints.NotBlank;
 import java.util.ArrayList;
 import java.util.Iterator;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 
 @Getter
@@ -33,16 +33,24 @@ public class Queue {
     }
 
 
-    public int addClient (String phoneNumber, String emailAddress){
+    public int addClient (String firstName, String lastName, String phoneNumber, String emailAddress){
 
         int addedClientIndex = -1;
         int lastClientIndex = clientQueue.size() - 1;
 
         if (clientQueue.size() == 0) { //Queue is empty
-            clientQueue.add(new Client(0, phoneNumber, emailAddress));
+            clientQueue.add(new Client(0,
+                    firstName,
+                    lastName,
+                    phoneNumber,
+                    emailAddress));
             addedClientIndex = 0;
         } else if (clientQueue.size() < queueSize) { //Queue isn't full
-            clientQueue.add(new Client(clientQueue.get(lastClientIndex).getQueueNumber() + 1, phoneNumber, emailAddress));
+            clientQueue.add(new Client(clientQueue.get(lastClientIndex).getQueueNumber() + 1,
+                    firstName,
+                    lastName,
+                    phoneNumber,
+                    emailAddress));
             addedClientIndex = lastClientIndex + 1;
         }
 

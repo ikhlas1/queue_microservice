@@ -12,8 +12,6 @@ import lombok.Setter;
 @Setter
 public class ClientForm {
 
-    private String serviceId;
-    private String queueId;
     private Client client;
     private String reason;
 }

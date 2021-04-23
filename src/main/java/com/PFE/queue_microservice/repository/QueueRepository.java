@@ -14,6 +14,8 @@ public interface QueueRepository extends MongoRepository <Queue,String> {
 
     Queue findByQueueId(String queueId);
 
+    boolean existsByQueueNameAndServiceId(String queueName, String serviceId);
+
     Queue findByQueueIdAndServiceId (String queueId, String serviceId);
 
     boolean existsByServiceId (String serviceId);

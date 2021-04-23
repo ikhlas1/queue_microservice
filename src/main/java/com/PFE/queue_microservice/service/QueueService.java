@@ -1,6 +1,7 @@
 package com.PFE.queue_microservice.service;
 
 import com.PFE.queue_microservice.DTO.ClientForm;
+import com.PFE.queue_microservice.DTO.QueueForm;
 import com.PFE.queue_microservice.model.Client;
 import com.PFE.queue_microservice.model.Queue;
 import com.PFE.queue_microservice.DTO.QueueDTO;
@@ -35,61 +36,86 @@ public class QueueService {
     private MappingJackson2MessageConverter mappingJackson2MessageConverter;
 
 
-//    public ResponseEntity<List<Queue>> getAll() {
-//
-//
-//        return ResponseEntity.status(200).body(queueRepository.findAll());
-//    }
+    public ResponseEntity<Queue> findByQueueId(String queueId, String serviceId) {
+
+        if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
+            return  ResponseEntity.status(HttpStatus.OK)
+                    .body(queueRepository.findByQueueIdAndServiceId(queueId, serviceId));
+        } else {
+            return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                    .body(null);
+        }
+    }
+
+    public ResponseEntity<List<Queue>> findByServiceId(String serviceId) {
+
+        if (queueRepository.existsByServiceId(serviceId)){
+            return ResponseEntity.status(HttpStatus.OK)
+                    .body(queueRepository.findByServiceId(serviceId));
+        } else {
+            return ResponseEntity.status(HttpStatus.NO_CONTENT)
+                    .body(null);
+        }
+    }
+
+    public ResponseEntity<Queue> updateQueue(QueueForm queueForm, String queueId, String serviceId) {
+        HttpStatus httpStatus;
+        Queue queue = new Queue();
+
+        if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
+            queue = queueRepository.findByQueueIdAndServiceId(queueId, serviceId);
+            if (queue.getClientQueue().size() == 0
+                    && (!queueRepository.existsByQueueNameAndServiceId(queueForm.getQueueName(), serviceId)
+                    || queueForm.getQueueName().equals(queue.getQueueName()))){
+                queue.setQueueName((queueForm.getQueueName()));
+                queue.setQueueSize(queueForm.getQueueSize());
+                queue.setNotificationFactor(queueForm.getNotificationFactor());
+                queue = queueRepository.save(queue);
+                httpStatus = HttpStatus.OK;
+            } else {
+                httpStatus = HttpStatus.CONFLICT;
+            }
+        } else {
+            httpStatus = HttpStatus.NOT_FOUND;
+        }
+
+        return ResponseEntity.status(httpStatus)
+                .body(queue);
+    }
 
     public ResponseEntity<Queue> addQueue(Queue queue) {
 
         HttpStatus httpStatus;
         queue.setClientQueue(new ArrayList<>());
-        try {
+
+        if (queueRepository.existsByQueueNameAndServiceId(queue.getQueueName(), queue.getServiceId())){
+            httpStatus = HttpStatus.CONFLICT;
+        } else {
             queue = queueRepository.insert(queue);
             httpStatus = HttpStatus.OK;
-        } catch (Exception exception) {
-            httpStatus = HttpStatus.INTERNAL_SERVER_ERROR;
         }
+
         return ResponseEntity.status(httpStatus)
                 .body(queue);
     }
 
-    public Queue updateQueue(Queue q) {
-
-        return queueRepository.save(q);
-    }
-
-    public ResponseEntity<QueueDTO> deleteQueue(String serviceId, String queueId) {
-        HttpHeaders responseHeaders = new HttpHeaders();
-        QueueDTO queueDTO = new QueueDTO();
+    public ResponseEntity deleteQueue(String serviceId, String queueId) {
         Queue queue;
-        int httpStatus;
+        HttpStatus httpStatus;
 
         if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
             queue = queueRepository.findByQueueIdAndServiceId(queueId, serviceId);
             if (queue.getClientQueue().size()==0){
                 queueRepository.deleteQueueByQueueIdAndServiceId(queueId, serviceId);
-                queueDTO = new QueueDTO(queueId, true);
-                responseHeaders.set("Custom-Header", "queue_deleted");
-                httpStatus = 200;
+                httpStatus = HttpStatus.OK;
             } else {
-                queueDTO = new QueueDTO(queueId, false);
-                responseHeaders.set("Custom-Header", "Queue has clients, cannot delete a non-empty Queue.");
-                httpStatus = 409;
+                httpStatus = HttpStatus.NOT_FOUND;
             }
         } else {
-            if (queueRepository.existsByServiceId(serviceId)){
-                responseHeaders.set("Custom-Header", "queue_not_found");
-                httpStatus = 404;
-            } else {
-                responseHeaders.set("Custom-Header", "service_not_found");
-                httpStatus = 401;
-            }
+            httpStatus = HttpStatus.NOT_FOUND;
         }
         return ResponseEntity.status(httpStatus)
-                .headers(responseHeaders)
-                .body(queueDTO);
+                .body(null);
     }
 
     public ResponseEntity<ArrayList<QueueDTO>> deleteQueues(String serviceId) {
@@ -125,150 +151,25 @@ public class QueueService {
                 .body(queueDTOS);
     }
 
-    public ResponseEntity<List<Queue>> findByServiceId(String serviceId) {
 
-        if (queueRepository.existsByServiceId(serviceId)){
-            return ResponseEntity.status(HttpStatus.OK)
-                    .body(queueRepository.findByServiceId(serviceId));
-        } else {
-            return ResponseEntity.status(HttpStatus.NO_CONTENT)
-                    .body(null);
-        }
-    }
-
-    public ResponseEntity<Queue> findByQueueId(String queueId, String serviceId) {
-
-        if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
-            return  ResponseEntity.status(HttpStatus.OK)
-                    .body(queueRepository.findByQueueIdAndServiceId(queueId, serviceId));
-        } else {
-            return ResponseEntity.status(HttpStatus.NOT_FOUND)
-                    .body(null);
-        }
-    }
-
-
-    public ResponseEntity<Queue> updateQueueSize(String serviceId, String queueId, int queueSize) {
-        Queue queue;
-        HttpHeaders responseHeaders = new HttpHeaders();
-
-        if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
-            queue = queueRepository.findByQueueIdAndServiceId(queueId, serviceId);
-            if (queue.getClientQueue().size() == 0){
-                queue.setQueueSize(queueSize);
-                queue = queueRepository.save(queue);
-                responseHeaders.set("Custom-Header", "queue_size_updated");
-                return ResponseEntity.status(200)
-                        .headers(responseHeaders)
-                        .body(queue);
-            } else {
-                responseHeaders.set("Custom-Header", "Queue has clients, cannot update a non-empty Queue.");
-                return ResponseEntity.status(409)
-                        .headers(responseHeaders)
-                        .body(null);
-            }
-        } else {
-            int httpStatus;
-            if (queueRepository.existsByServiceId(serviceId)){
-                responseHeaders.set("Custom-Header", "queue_not_found");
-                httpStatus = 404;
-            } else {
-                responseHeaders.set("Custom-Header", "service_not_found");
-                httpStatus = 401;
-            }
-            return ResponseEntity.status(httpStatus)
-                    .headers(responseHeaders)
-                    .body(null);
-        }
-
-    }
-
-    public ResponseEntity<Queue> updateQueueNotificationFactor(String serviceId, String queueId, int notificationFactor) {
-
-        Queue queue;
-        HttpHeaders responseHeaders = new HttpHeaders();
-
-        if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
-            queue = queueRepository.findByQueueIdAndServiceId(queueId, serviceId);
-            if (queue.getClientQueue().size() == 0){
-                queue.setNotificationFactor(notificationFactor);
-                queue = queueRepository.save(queue);
-                responseHeaders.set("Custom-Header", "queue_notification_factor_updated");
-                return ResponseEntity.status(200)
-                        .headers(responseHeaders)
-                        .body(queue);
-            } else {
-                responseHeaders.set("Custom-Header", "Queue has clients, cannot update a non-empty Queue.");
-                return ResponseEntity.status(409)
-                        .headers(responseHeaders)
-                        .body(null);
-            }
-        } else {
-            int httpStatus;
-            if (queueRepository.existsByServiceId(serviceId)){
-                responseHeaders.set("Custom-Header", "queue_not_found");
-                httpStatus = 404;
-            } else {
-                responseHeaders.set("Custom-Header", "service_not_found");
-                httpStatus = 401;
-            }
-            return ResponseEntity.status(httpStatus)
-                    .headers(responseHeaders)
-                    .body(null);
-        }
-    }
-
-    public ResponseEntity<Queue> updateQueueName(String serviceId, String queueId, String queueName) {
-        Queue queue;
-        HttpHeaders responseHeaders = new HttpHeaders();
-
-        if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
-            queue = queueRepository.findByQueueIdAndServiceId(queueId, serviceId);
-            if (queue.getClientQueue().size() == 0){
-                queue.setQueueName((queueName));
-                queue = queueRepository.save(queue);
-                responseHeaders.set("Custom-Header", "queue_name_updated");
-                return ResponseEntity.status(200)
-                        .headers(responseHeaders)
-                        .body(queue);
-            } else {
-                responseHeaders.set("Custom-Header", "Queue has clients, cannot update a non-empty Queue.");
-                return ResponseEntity.status(409)
-                        .headers(responseHeaders)
-                        .body(null);
-            }
-        } else {
-            int httpStatus;
-            if (queueRepository.existsByServiceId(serviceId)){
-                responseHeaders.set("Custom-Header", "queue_not_found");
-                httpStatus = 404;
-            } else {
-                responseHeaders.set("Custom-Header", "service_not_found");
-                httpStatus = 401;
-            }
-            return ResponseEntity.status(httpStatus)
-                    .headers(responseHeaders)
-                    .body(null);
-        }
-    }
-
-    public ResponseEntity<Queue> addClient (ClientForm clientForm){
+    public ResponseEntity<Queue> addClient (Client client, String serviceId, String queueId){
 
         HttpStatus httpStatus;
         Queue queue = new Queue();
-        Client client;
         int addedClientIndex;
-        String queueId = clientForm.getQueueId();
-        String serviceId = clientForm.getServiceId();
-        String phoneNumber = clientForm.getClient().getPhoneNumber();
-        String emailAddress = clientForm.getClient().getEmailAddress();
+        String firstName, lastName, phoneNumber, emailAddress;
+
 
         if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
+            firstName = client.getFirstName();
+            lastName = client.getLastName();
+            phoneNumber = client.getPhoneNumber();
+            emailAddress = client.getEmailAddress();
             //Queue exists for valid service
             queue = queueRepository.findByQueueIdAndServiceId(queueId, serviceId);
             if (validPhoneNumber(phoneNumber) && validEmailAddress(emailAddress)){
                 //Valid contact info
-                addedClientIndex = queue.addClient(phoneNumber, emailAddress);
+                addedClientIndex = queue.addClient(firstName, lastName, phoneNumber, emailAddress);
                 if (addedClientIndex != -1){
                     //Client added
                     //Update the queue database with the added client
@@ -278,9 +179,7 @@ public class QueueService {
                     //Retrieve added client
                     client = queue.getClientQueue().get(addedClientIndex);
                     //Send to rabbitmq-timestamp-queue
-                    //generateTimeStamp(queueId, serviceId, addedClientIndex, client,Reason.ADDED.getValue(), localDateTime);
                     //Send to rabbitmq-added-queue
-                    //sendAddedNotification(queue, client);
                     sendNotificationAndTimestamp(queue, addedClientIndex, client, Reason.ADDED.getValue(), localDateTime);
                     //Client added
                     httpStatus = HttpStatus.OK;
@@ -324,10 +223,8 @@ public class QueueService {
         return  valid;
     }
 
-    public ResponseEntity<Queue> deleteClient(ClientForm clientForm) {
+    public ResponseEntity<Queue> deleteClient(ClientForm clientForm, String serviceId, String queueId) {
 
-        String serviceId = clientForm.getServiceId();
-        String queueId  = clientForm.getQueueId();
         Client targetClient = clientForm.getClient();
         String reason = clientForm.getReason();
 
@@ -341,6 +238,7 @@ public class QueueService {
             if (!queue.getClientQueue().isEmpty()){
                 //Queue isn't empty
                 targetClientIndex = queue.deleteClient(targetClient);
+                System.out.println(queue.getClientQueue().stream());
                 if (targetClientIndex != -1){
                     //Client successfully deleted
                     queueRepository.save(queue);
@@ -383,7 +281,7 @@ public class QueueService {
             sendNotificationAndTimestamp(queue, clientIndex, client, reason, localDateTime);
             if (clientIndex == 0){
                 //Deleted first client, must generate TURN and ALMOST_TURN notifications/timestamps
-                sendNotificationAndTimestamp(queue,0, queue.getClientQueue().get(0), Reason.TURN.getValue(), localDateTime);
+                sendNotificationAndTimestamp(queue,0, client, Reason.TURN.getValue(), localDateTime);
                 sendNotificationAndTimestamp(queue, 0, null, Reason.ALMOST_TURN.getValue(), localDateTime);
             } else if ( clientIndex <= queue.getNotificationFactor()){
                 //Deleted 2nd or 3rd or .. until the notificationFactor rank, generate ALMOST_TURN notification/timestamp
