@@ -99,9 +99,10 @@ public class QueueService {
                 .body(queue);
     }
 
-    public ResponseEntity deleteQueue(String serviceId, String queueId) {
+    public ResponseEntity<String> deleteQueue(String serviceId, String queueId) {
         Queue queue;
         HttpStatus httpStatus;
+        String message = "";
 
         if (queueRepository.existsByQueueIdAndServiceId(queueId, serviceId)){
             queue = queueRepository.findByQueueIdAndServiceId(queueId, serviceId);
@@ -110,12 +111,14 @@ public class QueueService {
                 httpStatus = HttpStatus.OK;
             } else {
                 httpStatus = HttpStatus.NOT_FOUND;
+                message = "Cannot delete non-empty queues.";
             }
         } else {
             httpStatus = HttpStatus.NOT_FOUND;
+            message = "Queue not found.";
         }
         return ResponseEntity.status(httpStatus)
-                .body(null);
+                .body(message);
     }
 
     public ResponseEntity<ArrayList<QueueDTO>> deleteQueues(String serviceId) {
@@ -281,7 +284,7 @@ public class QueueService {
             sendNotificationAndTimestamp(queue, clientIndex, client, reason, localDateTime);
             if (clientIndex == 0){
                 //Deleted first client, must generate TURN and ALMOST_TURN notifications/timestamps
-                sendNotificationAndTimestamp(queue,0, client, Reason.TURN.getValue(), localDateTime);
+                sendNotificationAndTimestamp(queue,0, queue.getClientQueue().get(0), Reason.TURN.getValue(), localDateTime);
                 sendNotificationAndTimestamp(queue, 0, null, Reason.ALMOST_TURN.getValue(), localDateTime);
             } else if ( clientIndex <= queue.getNotificationFactor()){
                 //Deleted 2nd or 3rd or .. until the notificationFactor rank, generate ALMOST_TURN notification/timestamp
@@ -330,7 +333,7 @@ public class QueueService {
         boolean sent = false;
         boolean send;
 
-        if (!queue.getClientQueue().isEmpty()) {
+        if (queue.getClientQueue().size() != 0) {
             Notification notification = new Notification();
             send = notification.setContactInfo(queue.getClientQueue().get(0).getPhoneNumber(),
                     queue.getClientQueue().get(0).getEmailAddress());

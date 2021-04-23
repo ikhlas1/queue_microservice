@@ -4,16 +4,13 @@ import com.PFE.queue_microservice.DTO.ClientForm;
 import com.PFE.queue_microservice.DTO.QueueForm;
 import com.PFE.queue_microservice.model.Client;
 import com.PFE.queue_microservice.model.Queue;
-import com.PFE.queue_microservice.DTO.QueueDTO;
 import com.PFE.queue_microservice.service.QueueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
-import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
 import javax.validation.Valid;
 import javax.validation.constraints.NotBlank;
-import java.util.ArrayList;
 import java.util.List;
 
 @RestController
@@ -25,30 +22,30 @@ public class QueueController {
 
 
     @GetMapping ("/getQueue/{id}")
-    public ResponseEntity<Queue> getQueue(@Valid @NotBlank @PathVariable("id") String queueId,
-                                          @RequestParam(name = "sub")String serviceId){
+    public ResponseEntity<Queue> getQueue(@Valid @NotBlank(message = "Invalid Queue ID.") @PathVariable("id") String queueId,
+                                          @Valid @NotBlank(message = "Unauthorized request.") @RequestParam(name = "sub")String serviceId){
 
         return queueService.findByQueueId(queueId, serviceId);
     }
 
     @GetMapping ("/getQueues")
-    public ResponseEntity<List<Queue>> getQueues(@RequestParam(name = "sub") String serviceId){
+    public ResponseEntity<List<Queue>> getQueues(@Valid @NotBlank(message = "Unauthorized request.") @RequestParam(name = "sub") String serviceId){
 
         return queueService.findByServiceId(serviceId);
     }
 
     @PutMapping ("/updateQueue/{id}")
-    public ResponseEntity<Queue> updateQueue(@RequestBody QueueForm queueForm,
-                                             @PathVariable("id")String queueId,
-                                             @RequestParam(name = "sub")String serviceId){
+    public ResponseEntity<Queue> updateQueue(@Valid @RequestBody QueueForm queueForm,
+                                             @Valid @NotBlank(message = "Invalid Queue ID.") @PathVariable("id")String queueId,
+                                             @Valid @NotBlank(message = "Unauthorized request.") @RequestParam(name = "sub")String serviceId){
 
         return queueService.updateQueue(queueForm, queueId, serviceId);
     }
 
     @PostMapping ("/addQueue")
     public ResponseEntity<Queue> addQueue(@Valid @RequestBody QueueForm queueForm,
-                                          @Valid @NotBlank @RequestParam(name = "sub")String serviceId,
-                                          @Valid @NotBlank @RequestParam(name = "preferred_username")String serviceName){
+                                          @Valid @NotBlank(message = "Unauthorized request.") @RequestParam(name = "sub")String serviceId,
+                                          @Valid @NotBlank(message = "Unauthorized request.") @RequestParam(name = "preferred_username")String serviceName){
 
         Queue queue = new Queue(queueForm.getQueueName(),
                 queueForm.getQueueSize(),
@@ -74,7 +71,7 @@ public class QueueController {
     }
 
     @DeleteMapping ("/deleteQueue/{id}")
-    public ResponseEntity deleteQueue(@RequestParam("sub") String serviceId,
+    public ResponseEntity<String> deleteQueue(@RequestParam("sub") String serviceId,
                                       @PathVariable("id") String queueId){
 
          return queueService.deleteQueue(serviceId, queueId);

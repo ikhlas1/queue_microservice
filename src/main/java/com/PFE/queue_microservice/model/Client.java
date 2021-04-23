@@ -5,26 +5,26 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import javax.validation.constraints.NotBlank;
+import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
 @AllArgsConstructor
 @NoArgsConstructor
 @Getter
 @Setter
 public class Client {
     private int queueNumber;
+    @NotNull(message = "Client's First name must not be null.")
     private String firstName;
+    @NotNull(message = "Client's Family name must not be null.")
     private String lastName;
+    @NotNull(message = "Client's phone number must not be null.")
     private String phoneNumber;
+    @NotNull(message = "Client's email address must not be null.")
     private String emailAddress;
 
 
-//    public Client(int queueNumber, String firstName, String lastName, String phoneNumber, String emailAddress) {
-//        this.queueNumber = queueNumber;
-//        this.firstName = firstName;
-//        this.lastName = lastName;
-//        this.phoneNumber = phoneNumber;
-//        this.emailAddress = emailAddress;
-//    }
-//
     public boolean equals(Client client) {
 
         return (this.queueNumber == client.getQueueNumber()
